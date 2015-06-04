@@ -40,7 +40,25 @@ called for serialization.
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-Concord.publish('any-topic-name', obj)
+Concord.publish('any-topic-name', obj, options)
+```
+
+The `publish` method also accepts options that impact instantiation of the
+`Publisher` object, though they are not currently utilized.
+
+```ruby
+obj = { foo: 'foo', bar: 'bar' }
+options = { ... }
+Concord.publish('my-topic-name', obj, options)
+```
+
+Alternatively, if your options hash will remain unchanged, you can build a single
+`Publisher` object to use for all publishing.
+
+```ruby
+options = { ... }
+publisher = Concord::Publisher.new(options)
+publisher.publish('my-topic-name', obj)
 ```
 
 ### Subscribing
@@ -50,6 +68,31 @@ URL and takes a block for processing each message.
 
 ```ruby
 Concord.subscribe('https://sqs.us-east-1.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message|
+  puts message.inspect
+end
+```
+
+The `subscribe` method also accepts options that impact instantiation of the
+`Subscriber` object, which currently accepts the following options.
+
+* `:timeout` - The amount of time to wait before checking the SQS queue if it was
+  empty on the last fetch.  (default: 10)
+* `:batch_size` - The number of messages to retrieve in a single SQS request.
+  (default: 10)
+
+```ruby
+Concord.subscribe('https://...', timeout: 60, batch_size: 20) do |message|
+  puts message.inspect
+end
+```
+
+Alternatively, if your options hash will remain unchanged, you can build a single
+`Subscriber` object to use for all subscribing.
+
+```ruby
+options = { ... }
+subscriber = Concord::Subscriber.new(options)
+subscriber.subscribe('https://...') do |message|
   puts message.inspect
 end
 ```
