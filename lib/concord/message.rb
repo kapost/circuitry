@@ -9,11 +9,11 @@ module Concord
     end
 
     def context
-      @context ||= JSON.load(raw['Body'])
+      @context ||= JSON.parse(raw['Body'])
     end
 
     def body
-      @body ||= JSON.load(context['Message'])
+      @body ||= JSON.parse(context['Message'], quirks_mode: true)
     end
 
     def id
