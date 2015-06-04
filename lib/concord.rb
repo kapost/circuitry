@@ -11,7 +11,7 @@ module Concord
   end
 
   def self.publish(topic_name, object, options = {})
-    Publisher.new(topic_name, object, options).publish
+    Publisher.new(options).publish(topic_name, object)
   end
 
   def self.subscribe(queue, options = {}, &block)
