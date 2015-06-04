@@ -7,10 +7,10 @@ module Concord
   class Subscriber
     include Services::SQS
 
-    attr_reader :queue, :timeout, :batch_size, :max_retries, :failure_queue
+    attr_reader :queue, :wait_time, :batch_size, :max_retries, :failure_queue
 
     DEFAULT_OPTIONS = {
-        timeout: 10,
+        wait_time: 10,
         batch_size: 10,
     }.freeze
 
@@ -20,13 +20,13 @@ module Concord
       options = options.merge(DEFAULT_OPTIONS)
 
       @queue = queue
-      @timeout = options[:timeout]
+      @wait_time = options[:wait_time]
       @batch_size = options[:batch_size]
     end
 
     def subscribe(&block)
       loop do
-        sleep(timeout) unless receive_messages(&block)
+        sleep(wait_time) unless receive_messages(&block)
       end
     end
 

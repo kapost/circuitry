@@ -75,13 +75,13 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently accepts the following options.
 
-* `:timeout` - The amount of time to wait before checking the SQS queue if it was
-  empty on the last fetch.  (default: 10)
+* `:wait_time` - The amount of time to wait before checking the SQS queue if it
+  was empty on the last fetch.  (default: 10)
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   (default: 10)
 
 ```ruby
-Concord.subscribe('https://...', timeout: 60, batch_size: 20) do |message|
+Concord.subscribe('https://...', wait_time: 60, batch_size: 20) do |message|
   puts message.inspect
 end
 ```
