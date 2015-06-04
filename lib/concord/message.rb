@@ -1,3 +1,5 @@
+require 'json'
+
 module Concord
   class Message
     attr_reader :raw

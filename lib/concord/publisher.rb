@@ -1,3 +1,4 @@
+require 'json'
 require 'concord/services/sns'
 require 'concord/topic_creator'
 
