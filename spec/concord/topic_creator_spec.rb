@@ -50,7 +50,7 @@ RSpec.describe Concord::TopicCreator, type: :model do
     describe 'when response does not include a topic ARN' do
       let(:body) { {} }
 
-      it 'raises an error', :focus do
+      it 'raises an error' do
         expect { subject.topic }.to raise_error(Concord::TopicCreatorError)
       end
     end
