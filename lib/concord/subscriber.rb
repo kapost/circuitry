@@ -26,14 +26,14 @@ module Concord
 
     def subscribe(&block)
       loop do
-        sleep(wait_time) unless receive_messages(&block)
+        receive_messages(&block)
       end
     end
 
     private
 
     def receive_messages(&block)
-      response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size)
+      response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
       messages = response.body['Message']
       return false if messages.empty?
 

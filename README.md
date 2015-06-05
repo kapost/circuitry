@@ -75,8 +75,9 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently accepts the following options.
 
-* `:wait_time` - The amount of time to wait before checking the SQS queue if it
-  was empty on the last fetch.  (default: 10)
+* `:wait_time` - The number of seconds to wait for messages while connected to
+  SQS.  Anything above 0 results in long-polling, while 0 results in
+  short-polling.  (default: 10)
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   (default: 10)
 
