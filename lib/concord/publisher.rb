@@ -15,8 +15,8 @@ module Concord
     end
 
     def publish(topic_name, object)
-      raise ArgumentError('topic_name cannot be nil') if topic_name.nil?
-      raise ArgumentError('object cannot be nil') if object.nil?
+      raise ArgumentError.new('topic_name cannot be nil') if topic_name.nil?
+      raise ArgumentError.new('object cannot be nil') if object.nil?
 
       topic = TopicCreator.find_or_create(topic_name)
       sns.publish(topic.arn, object.to_json)
