@@ -15,7 +15,7 @@ module Concord
     }.freeze
 
     def initialize(queue, options = {})
-      raise ArgumentError('queue cannot be nil') if queue.nil?
+      raise ArgumentError.new('queue cannot be nil') if queue.nil?
 
       options = options.merge(DEFAULT_OPTIONS)
 
@@ -25,6 +25,11 @@ module Concord
     end
 
     def subscribe(&block)
+      unless can_subscribe?
+        logger.warn('Concord unable to subscribe: AWS configuration is not set.')
+        return
+      end
+
       loop do
         receive_messages(&block)
       end
@@ -76,6 +81,12 @@ module Concord
 
     def logger
       Concord.config.logger
+    end
+
+    def can_subscribe?
+      Concord.config.aws_options.values.all? do |value|
+        !value.nil? && !value.empty?
+      end
     end
   end
 end
