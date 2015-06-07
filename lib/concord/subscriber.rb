@@ -66,12 +66,7 @@ module Concord
       block.call(message.body)
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
-      requeue_message(message)
-    end
-
-    def requeue_message(message)
-      logger.info "Requeuing message #{message.id}"
-      sqs.send_message(queue, message.body)
+      raise e
     end
 
     def delete_message(message)
