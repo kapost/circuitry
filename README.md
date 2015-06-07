@@ -108,11 +108,6 @@ release a new version, update the version number in `version.rb`, and then run
 `bundle exec rake release` to create a git tag for the version, push git commits
 and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-## Improvements
-
-* Failures: it would be nice to set up a failure queue for requeuing, and perhaps
-  a maximum number of retries before moving to the failure queue.
-
 ## Contributing
 
 1. Fork it ( https://github.com/kapost/concord/fork )
