@@ -2,6 +2,9 @@
 
 Kapost notification pub/sub and message queue processing.
 
+[![Code Climate](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/gpa.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/feed)
+[![Test Coverage](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/coverage.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/coverage)
+
 ## Installation
 
 Add this line to your application's Gemfile:
