@@ -1,6 +1,7 @@
 # Concord
 
-Kapost notification pub/sub and message queue processing.
+Notification pub/sub and message queue processing using Amazon
+[SNS](http://aws.amazon.com/sns/) & [SQS](http://aws.amazon.com/sqs/).
 
 [![Code Climate](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/gpa.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/feed)
 [![Test Coverage](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/coverage.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/coverage)
