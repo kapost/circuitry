@@ -7,16 +7,12 @@ Gem::Specification.new do |spec|
   spec.name          = 'concord'
   spec.version       = Concord::VERSION
   spec.authors       = ['Matt Huggins']
-  spec.email         = ['matt.huggins@kapost.com.com']
-
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = 'http://gems.kapost.com'
-  end
+  spec.email         = ['matt.huggins@kapost.com']
 
   spec.summary       = %q{Kapost notification pub/sub and message queue processing.}
   spec.description   = %q{Amazon SNS publishing and SQS queue processing.}
   spec.homepage      = 'https://github.com/kapost/concord'
-  spec.license       = 'Proprietary'
+  spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
   spec.bindir        = 'exe'
