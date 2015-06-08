@@ -1,4 +1,5 @@
 require 'json'
+require 'concord/topic'
 
 module Concord
   class Message
@@ -14,6 +15,10 @@ module Concord
 
     def body
       @body ||= JSON.parse(context['Message'], quirks_mode: true)
+    end
+
+    def topic
+      @topic ||= Topic.new(context['TopicArn'])
     end
 
     def id

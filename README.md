@@ -26,10 +26,28 @@ Concord is configured via its configuration object.
 Concord.config do |c|
   c.access_key = 'YOUR_AWS_ACCESS_KEY'
   c.secret_key = 'YOUR_AWS_SECRET_KEY'
-  c.region = 'us-east-1'                 # optional, default: 'us-east-1'
-  c.logger = Rails.logger                # optional, default: Logger.new(STDOUT)
+  c.region = 'us-east-1'
+  c.logger = Rails.logger
+  c.error_handler = proc do |error|
+    HoneyBadger.notify(error)
+    HoneyBadger.flush
+  end
 end
 ```
+
+Available configuration options include:
+
+* `access_key`: The AWS access key ID that has access to SNS publishing and/or
+  SQS subscribing.  *(required)*
+* `secret_key`: The AWS secret access key that has access to SNS publishing
+  and/or SQS subscribing.  *(required)*
+* `region`: The AWS region that your SNS and/or SQS account lives in.
+  *(optional, default: "us-east-1")*
+* `logger`: The logger to use for informational output, warnings, and error
+  messages.  *(optional, default: `Logger.new(STDOUT)`)*
+* `error_handler`: An object that responds to `call` with to arguments: the
+  deserialized message contents and the topic name used when publishing to SNS.
+  *(optional, default: `nil`)*
 
 ### Publishing
 
@@ -67,8 +85,8 @@ Subscribing is done via the `Concord.subscribe` method.  It accepts an SQS queue
 URL and takes a block for processing each message.
 
 ```ruby
-Concord.subscribe('https://sqs.us-east-1.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message|
-  puts message.inspect
+Concord.subscribe('https://sqs.us-east-1.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
+  puts "Received #{topic_name} message: #{message.inspect}"
 end
 ```
 
@@ -82,8 +100,8 @@ The `subscribe` method also accepts options that impact instantiation of the
   (default: 10)
 
 ```ruby
-Concord.subscribe('https://...', wait_time: 60, batch_size: 20) do |message|
-  puts message.inspect
+Concord.subscribe('https://...', wait_time: 60, batch_size: 20) do |message, topic_name|
+  # ...
 end
 ```
 
@@ -93,8 +111,8 @@ Alternatively, if your options hash will remain unchanged, you can build a singl
 ```ruby
 options = { ... }
 subscriber = Concord::Subscriber.new(options)
-subscriber.subscribe('https://...') do |message|
-  puts message.inspect
+subscriber.subscribe('https://...') do |message, topic_name|
+  # ...
 end
 ```
 

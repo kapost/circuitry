@@ -9,6 +9,7 @@ module Concord
     attribute :secret_key, String
     attribute :region, String, default: 'us-east-1'
     attribute :logger, Logger, default: Logger.new(STDERR)
+    attribute :error_handler
 
     def aws_options
       {

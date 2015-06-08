@@ -14,6 +14,10 @@ module Concord
         batch_size: 10,
     }.freeze
 
+    CONNECTION_ERRORS = [
+        Excon::Errors::Forbidden,
+    ].freeze
+
     def initialize(queue, options = {})
       raise ArgumentError.new('queue cannot be nil') if queue.nil?
 
@@ -25,13 +29,20 @@ module Concord
     end
 
     def subscribe(&block)
+      raise ArgumentError.new('block required') if block.nil?
+
       unless can_subscribe?
         logger.warn('Concord unable to subscribe: AWS configuration is not set.')
         return
       end
 
       loop do
-        receive_messages(&block)
+        begin
+          receive_messages(&block)
+        rescue *CONNECTION_ERRORS => e
+          logger.error "Connection error to #{queue}: #{e}"
+          raise SubscribeError.new(e)
+        end
       end
     end
 
@@ -40,16 +51,11 @@ module Concord
     def receive_messages(&block)
       response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
       messages = response.body['Message']
-      return false if messages.empty?
+      return if messages.empty?
 
       messages.each do |message|
         process_message(message, &block)
       end
-
-      true
-    rescue Excon::Errors::Forbidden => e
-      logger.error "Access forbidden to #{queue}: #{e}"
-      raise SubscribeError.new(e)
     end
 
     def process_message(message, &block)
@@ -60,10 +66,13 @@ module Concord
         handle_message(message, &block)
         delete_message(message)
       end
+    rescue => e
+      logger.error "Error processing message #{message.id}: #{e}"
+      error_handler.call(e) if error_handler
     end
 
     def handle_message(message, &block)
-      block.call(message.body)
+      block.call(message.body, message.topic.name)
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e
@@ -76,6 +85,10 @@ module Concord
 
     def logger
       Concord.config.logger
+    end
+
+    def error_handler
+      Concord.config.error_handler
     end
 
     def can_subscribe?
