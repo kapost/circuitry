@@ -8,10 +8,14 @@ module Concord
   class Publisher
     include Services::SNS
 
+    DEFAULT_OPTIONS = {
+        async: false,
+    }.freeze
+
     def initialize(options = {})
-      # We're not utilizing `options` at the moment, but let's leave it here for
-      # conformity with the `Subscriber` class while allowing for future
-      # enhancement that does not disturb this method's signature.
+      options = DEFAULT_OPTIONS.merge(options)
+
+      @async = !!options[:async]
     end
 
     def publish(topic_name, object)
@@ -23,8 +27,20 @@ module Concord
         return
       end
 
-      topic = TopicCreator.find_or_create(topic_name)
-      sns.publish(topic.arn, object.to_json)
+      process = -> do
+        topic = TopicCreator.find_or_create(topic_name)
+        sns.publish(topic.arn, object.to_json)
+      end
+
+      if async?
+        Process.detach(fork(&process))
+      else
+        process.call
+      end
+    end
+
+    def async?
+      @async
     end
 
     private

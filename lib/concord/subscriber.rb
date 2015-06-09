@@ -21,7 +21,7 @@ module Concord
     def initialize(queue, options = {})
       raise ArgumentError.new('queue cannot be nil') if queue.nil?
 
-      options = options.merge(DEFAULT_OPTIONS)
+      options = DEFAULT_OPTIONS.merge(options)
 
       @queue = queue
       @wait_time = options[:wait_time]

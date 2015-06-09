@@ -40,9 +40,32 @@ RSpec.describe Concord::Publisher, type: :model do
           allow(subject).to receive(:can_publish?).and_return(true)
         end
 
-        it 'publishes to SNS' do
-          subject.publish(topic_name, object)
-          expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
+        describe 'asynchronously' do
+          before do
+            allow(subject).to receive(:fork) { |&block| block.call }.and_return(pid)
+            allow(Process).to receive(:detach)
+          end
+
+          let(:options) { { async: true } }
+          let(:pid) { 'pid' }
+
+          it 'forks a detached process' do
+            subject.publish(topic_name, object)
+            expect(subject).to have_received(:fork)
+            expect(Process).to have_received(:detach).with(pid)
+          end
+
+          it 'publishes to SNS' do
+            subject.publish(topic_name, object)
+            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
+          end
+        end
+
+        describe 'synchonously' do
+          it 'publishes to SNS' do
+            subject.publish(topic_name, object)
+            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
+          end
         end
       end
 
