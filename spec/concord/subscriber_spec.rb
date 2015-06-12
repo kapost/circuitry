@@ -119,9 +119,8 @@ RSpec.describe Concord::Subscriber, type: :model do
         describe 'synchronously' do
           let(:options) { { async: false } }
 
-          it 'does not fork a detached process' do
-            expect(subject).to_not receive(:fork)
-            expect(Process).to_not receive(:detach)
+          it 'does not process asynchronously' do
+            expect(subject).to_not receive(:process_asynchronously)
             subject.subscribe(&block)
           end
 
@@ -130,17 +129,14 @@ RSpec.describe Concord::Subscriber, type: :model do
 
         describe 'asynchronously' do
           before do
-            allow(subject).to receive(:fork) { |&block| block.call }.and_return(pid)
-            allow(Process).to receive(:detach)
+            allow(subject).to receive(:process_asynchronously) { |&block| block.call }
           end
 
           let(:options) { { async: true } }
-          let(:pid) { 'pid' }
 
-          it 'forks a detached process' do
+          it 'processes asynchronously' do
             subject.subscribe(&block)
-            expect(subject).to have_received(:fork)
-            expect(Process).to have_received(:detach).with(pid)
+            expect(subject).to have_received(:process_asynchronously)
           end
 
           it_behaves_like 'a valid subscribe request'

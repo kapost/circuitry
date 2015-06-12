@@ -47,26 +47,28 @@ RSpec.describe Concord::Publisher, type: :model do
           end
         end
 
-        describe 'asynchronously' do
-          before do
-            allow(subject).to receive(:fork) { |&block| block.call }.and_return(pid)
-            allow(Process).to receive(:detach)
-          end
+        describe 'synchonously' do
+          let(:options) { { async: false } }
 
-          let(:options) { { async: true } }
-          let(:pid) { 'pid' }
-
-          it 'forks a detached process' do
+          it 'does not process asynchronously' do
+            expect(subject).to_not receive(:process_asynchronously)
             subject.publish(topic_name, object)
-            expect(subject).to have_received(:fork)
-            expect(Process).to have_received(:detach).with(pid)
           end
 
           it_behaves_like 'a valid publish request'
         end
 
-        describe 'synchonously' do
-          let(:options) { { async: false } }
+        describe 'asynchronously' do
+          before do
+            allow(subject).to receive(:process_asynchronously) { |&block| block.call }
+          end
+
+          let(:options) { { async: true } }
+
+          it 'processes asynchronously' do
+            subject.publish(topic_name, object)
+            expect(subject).to have_received(:process_asynchronously)
+          end
 
           it_behaves_like 'a valid publish request'
         end
