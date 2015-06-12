@@ -17,4 +17,8 @@ module Concord
   def self.subscribe(queue, options = {}, &block)
     Subscriber.new(queue, options).subscribe(&block)
   end
+
+  def self.platform_supports_async?
+    Process.respond_to?(:fork)
+  end
 end

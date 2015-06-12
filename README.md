@@ -62,16 +62,19 @@ called for serialization.
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-Concord.publish('any-topic-name', obj, options)
+Concord.publish('any-topic-name', obj)
 ```
 
 The `publish` method also accepts options that impact instantiation of the
-`Publisher` object, though they are not currently utilized.
+`Publisher` object, which currently includes the following options.
+
+* `:async` - Whether or not publishing should occur in the background.  Please
+   refer to the [Asynchronous Support](#asynchronous-support) section for more
+   details regarding this option.  (default: false)
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-options = { ... }
-Concord.publish('my-topic-name', obj, options)
+Concord.publish('my-topic-name', obj, async: true)
 ```
 
 Alternatively, if your options hash will remain unchanged, you can build a single
@@ -86,17 +89,21 @@ publisher.publish('my-topic-name', obj)
 ### Subscribing
 
 Subscribing is done via the `Concord.subscribe` method.  It accepts an SQS queue
-URL and takes a block for processing each message.
+URL and takes a block for processing each message.  This method performs
+synchronously by default, and as such does not return.
 
 ```ruby
-Concord.subscribe('https://sqs.us-east-1.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
+Concord.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
   puts "Received #{topic_name} message: #{message.inspect}"
 end
 ```
 
 The `subscribe` method also accepts options that impact instantiation of the
-`Subscriber` object, which currently accepts the following options.
+`Subscriber` object, which currently includes the following options.
 
+* `:async` - Whether or not subscribing should occur in the background.  Please
+   refer to the [Asynchronous Support](#asynchronous-support) section for more
+   details regarding this option.  (default: false)
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS.  Anything above 0 results in long-polling, while 0 results in
   short-polling.  (default: 10)
@@ -104,7 +111,7 @@ The `subscribe` method also accepts options that impact instantiation of the
   (default: 10)
 
 ```ruby
-Concord.subscribe('https://...', wait_time: 60, batch_size: 20) do |message, topic_name|
+Concord.subscribe('https://...', async: true, wait_time: 60, batch_size: 20) do |message, topic_name|
   # ...
 end
 ```
@@ -119,6 +126,43 @@ subscriber.subscribe('https://...') do |message, topic_name|
   # ...
 end
 ```
+
+### Asynchronous Support
+
+Publishing or subscribing asynchronously occurs by forking a child process.  That
+child is then detached so that your application does not need to worry about
+waiting for the process to finish.
+
+There are two important notes regarding forking in general as it relates to
+asynchronous support:
+
+1. Forking is not supported on all platforms (e.g.: Windows and NetBSD 4),
+   requiring that your implementation use synchronous requests in such
+   circumstances.  You can determine if asynchronous requests will work by
+   calling `Concord.platform_supports_async?`.
+
+2. Forking results in resources being copied from the parent process to the child
+   process.  In order to prevent database connection errors and the like, you
+   should properly handle closing and reopening resources before and after
+   forking, respectively.  For example, if you are using Rails with Unicorn, you
+   may need to add the following code to your `unicorn.rb` configuration:
+
+        before_fork do |server, worker|
+          if defined?(ActiveRecord::Base)
+            ActiveRecord::Base.connection.disconnect!
+          end
+        end
+
+        after_fork do |server, worker|
+          if defined?(ActiveRecord::Base)
+            ActiveRecord::Base.establish_connection(
+              Rails.application.config.database_configuration[Rails.env]
+            )
+          end
+        end
+
+   Refer to your adapter's documentation to determine how resources are handled
+   with regards to forking.
 
 ## Development
 

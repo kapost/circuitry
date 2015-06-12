@@ -40,6 +40,13 @@ RSpec.describe Concord::Publisher, type: :model do
           allow(subject).to receive(:can_publish?).and_return(true)
         end
 
+        shared_examples_for 'a valid publish request' do
+          it 'publishes to SNS' do
+            subject.publish(topic_name, object)
+            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
+          end
+        end
+
         describe 'asynchronously' do
           before do
             allow(subject).to receive(:fork) { |&block| block.call }.and_return(pid)
@@ -55,17 +62,13 @@ RSpec.describe Concord::Publisher, type: :model do
             expect(Process).to have_received(:detach).with(pid)
           end
 
-          it 'publishes to SNS' do
-            subject.publish(topic_name, object)
-            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
-          end
+          it_behaves_like 'a valid publish request'
         end
 
         describe 'synchonously' do
-          it 'publishes to SNS' do
-            subject.publish(topic_name, object)
-            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
-          end
+          let(:options) { { async: false } }
+
+          it_behaves_like 'a valid publish request'
         end
       end
 
@@ -87,6 +90,14 @@ RSpec.describe Concord::Publisher, type: :model do
           expect(logger).to have_received(:warn).with('Concord unable to publish: AWS configuration is not set.')
         end
       end
+    end
+  end
+
+  describe '#async?' do
+    let(:options) { { async: true } }
+
+    it 'returns the initializer value' do
+      expect(subject).to be_async
     end
   end
 end

@@ -1,4 +1,5 @@
 require 'json'
+require 'concord/concerns/async'
 require 'concord/services/sns'
 require 'concord/topic_creator'
 
@@ -6,6 +7,7 @@ module Concord
   class PublishError < StandardError; end
 
   class Publisher
+    include Concerns::Async
     include Services::SNS
 
     DEFAULT_OPTIONS = {
@@ -33,7 +35,7 @@ module Concord
       end
 
       if async?
-        Process.detach(fork(&process))
+        process_asynchronously(&process)
       else
         process.call
       end

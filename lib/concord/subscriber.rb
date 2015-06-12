@@ -1,3 +1,4 @@
+require 'concord/concerns/async'
 require 'concord/services/sqs'
 require 'concord/message'
 
@@ -5,11 +6,13 @@ module Concord
   class SubscribeError < StandardError; end
 
   class Subscriber
+    include Concerns::Async
     include Services::SQS
 
     attr_reader :queue, :wait_time, :batch_size, :max_retries, :failure_queue
 
     DEFAULT_OPTIONS = {
+        async: false,
         wait_time: 10,
         batch_size: 10,
     }.freeze
@@ -24,6 +27,7 @@ module Concord
       options = DEFAULT_OPTIONS.merge(options)
 
       @queue = queue
+      @async = !!options[:async]
       @wait_time = options[:wait_time]
       @batch_size = options[:batch_size]
     end
@@ -36,14 +40,26 @@ module Concord
         return
       end
 
-      loop do
-        begin
-          receive_messages(&block)
-        rescue *CONNECTION_ERRORS => e
-          logger.error "Connection error to #{queue}: #{e}"
-          raise SubscribeError.new(e)
+      process = -> do
+        loop do
+          begin
+            receive_messages(&block)
+          rescue *CONNECTION_ERRORS => e
+            logger.error "Connection error to #{queue}: #{e}"
+            raise SubscribeError.new(e)
+          end
         end
       end
+
+      if async?
+        process_asynchronously(&process)
+      else
+        process.call
+      end
+    end
+
+    def async?
+      @async
     end
 
     private
