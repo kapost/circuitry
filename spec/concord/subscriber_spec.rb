@@ -49,7 +49,7 @@ RSpec.describe Concord::Subscriber, type: :model do
           expect(mock_sqs).to have_received(:receive_message).with(queue, any_args)
         end
 
-        describe 'when messages are received' do
+        shared_examples_for 'a valid subscribe request' do
           let(:messages) do
             [
                 { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json },
@@ -115,6 +115,32 @@ RSpec.describe Concord::Subscriber, type: :model do
             end
           end
         end
+
+        describe 'synchronously' do
+          let(:options) { { async: false } }
+
+          it 'does not process asynchronously' do
+            expect(subject).to_not receive(:process_asynchronously)
+            subject.subscribe(&block)
+          end
+
+          it_behaves_like 'a valid subscribe request'
+        end
+
+        describe 'asynchronously' do
+          before do
+            allow(subject).to receive(:process_asynchronously) { |&block| block.call }
+          end
+
+          let(:options) { { async: true } }
+
+          it 'processes asynchronously' do
+            subject.subscribe(&block)
+            expect(subject).to have_received(:process_asynchronously)
+          end
+
+          it_behaves_like 'a valid subscribe request'
+        end
       end
 
       describe 'when AWS credentials are not set' do
@@ -135,6 +161,36 @@ RSpec.describe Concord::Subscriber, type: :model do
           expect(logger).to have_received(:warn).with('Concord unable to subscribe: AWS configuration is not set.')
         end
       end
+    end
+  end
+
+  describe '#queue' do
+    it 'returns the initializer value' do
+      expect(subject.queue).to eq queue
+    end
+  end
+
+  describe '#wait_time' do
+    let(:options) { { wait_time: 123 } }
+
+    it 'returns the initializer value' do
+      expect(subject.wait_time).to eq 123
+    end
+  end
+
+  describe '#batch_size' do
+    let(:options) { { batch_size: 321 } }
+
+    it 'returns the initializer value' do
+      expect(subject.batch_size).to eq 321
+    end
+  end
+
+  describe '#async?' do
+    let(:options) { { async: true } }
+
+    it 'returns the initializer value' do
+      expect(subject).to be_async
     end
   end
 end
