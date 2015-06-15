@@ -49,7 +49,7 @@ Available configuration options include:
   *(optional, default: "us-east-1")*
 * `logger`: The logger to use for informational output, warnings, and error
   messages.  *(optional, default: `Logger.new(STDOUT)`)*
-* `error_handler`: An object that responds to `call` with to arguments: the
+* `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
 
