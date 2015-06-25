@@ -1,4 +1,4 @@
-module Concord
+module Circuitry
   class Topic
     attr_reader :arn
 

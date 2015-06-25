@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Concord::Configuration, type: :model do
+RSpec.describe Circuitry::Configuration, type: :model do
   describe '#aws_options' do
     before do
       subject.access_key = 'access_key'

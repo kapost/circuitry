@@ -1,9 +1,9 @@
 require 'json'
-require 'concord/concerns/async'
-require 'concord/services/sns'
-require 'concord/topic_creator'
+require 'circuitry/concerns/async'
+require 'circuitry/services/sns'
+require 'circuitry/topic_creator'
 
-module Concord
+module Circuitry
   class PublishError < StandardError; end
 
   class Publisher
@@ -25,7 +25,7 @@ module Concord
       raise ArgumentError.new('object cannot be nil') if object.nil?
 
       unless can_publish?
-        logger.warn('Concord unable to publish: AWS configuration is not set.')
+        logger.warn('Circuitry unable to publish: AWS configuration is not set.')
         return
       end
 
@@ -48,11 +48,11 @@ module Concord
     private
 
     def logger
-      Concord.config.logger
+      Circuitry.config.logger
     end
 
     def can_publish?
-      Concord.config.aws_options.values.all? do |value|
+      Circuitry.config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end

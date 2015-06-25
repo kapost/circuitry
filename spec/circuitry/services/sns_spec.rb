@@ -1,13 +1,13 @@
 require 'spec_helper'
 
 sns_class = Class.new do
-  include Concord::Services::SNS
+  include Circuitry::Services::SNS
 end
 
 RSpec.describe sns_class, type: :model do
   describe '#sns' do
     before do
-      allow(Concord.config).to receive(:aws_options).and_return(aws_options)
+      allow(Circuitry.config).to receive(:aws_options).and_return(aws_options)
     end
 
     let(:aws_options) { { aws_access_key_id: 'foo', aws_secret_access_key: 'bar' } }

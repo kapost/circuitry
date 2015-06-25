@@ -1,4 +1,4 @@
-# Concord
+# Circuitry
 
 Notification pub/sub and message queue processing using Amazon
 [SNS](http://aws.amazon.com/sns/) & [SQS](http://aws.amazon.com/sqs/).
@@ -11,7 +11,7 @@ Notification pub/sub and message queue processing using Amazon
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'concord'
+gem 'circuitry'
 ```
 
 And then execute:
@@ -20,14 +20,14 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install concord
+    $ gem install circuitry
 
 ## Usage
 
-Concord is configured via its configuration object.
+Circuitry is configured via its configuration object.
 
 ```ruby
-Concord.config do |c|
+Circuitry.config do |c|
   c.access_key = 'YOUR_AWS_ACCESS_KEY'
   c.secret_key = 'YOUR_AWS_SECRET_KEY'
   c.region = 'us-east-1'
@@ -55,14 +55,14 @@ Available configuration options include:
 
 ### Publishing
 
-Publishing is done via the `Concord.publish` method.  It accepts a topic name
+Publishing is done via the `Circuitry.publish` method.  It accepts a topic name
 the represents the SNS topic along with any non-nil object, representing the data
 to be serialized.  Whatever object is called will have its `to_json` method
 called for serialization.
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-Concord.publish('any-topic-name', obj)
+Circuitry.publish('any-topic-name', obj)
 ```
 
 The `publish` method also accepts options that impact instantiation of the
@@ -74,7 +74,7 @@ The `publish` method also accepts options that impact instantiation of the
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-Concord.publish('my-topic-name', obj, async: true)
+Circuitry.publish('my-topic-name', obj, async: true)
 ```
 
 Alternatively, if your options hash will remain unchanged, you can build a single
@@ -82,18 +82,18 @@ Alternatively, if your options hash will remain unchanged, you can build a singl
 
 ```ruby
 options = { ... }
-publisher = Concord::Publisher.new(options)
+publisher = Circuitry::Publisher.new(options)
 publisher.publish('my-topic-name', obj)
 ```
 
 ### Subscribing
 
-Subscribing is done via the `Concord.subscribe` method.  It accepts an SQS queue
+Subscribing is done via the `Circuitry.subscribe` method.  It accepts an SQS queue
 URL and takes a block for processing each message.  This method performs
 synchronously by default, and as such does not return.
 
 ```ruby
-Concord.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
+Circuitry.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
   puts "Received #{topic_name} message: #{message.inspect}"
 end
 ```
@@ -111,7 +111,7 @@ The `subscribe` method also accepts options that impact instantiation of the
   (default: 10)
 
 ```ruby
-Concord.subscribe('https://...', async: true, wait_time: 60, batch_size: 20) do |message, topic_name|
+Circuitry.subscribe('https://...', async: true, wait_time: 60, batch_size: 20) do |message, topic_name|
   # ...
 end
 ```
@@ -121,7 +121,7 @@ Alternatively, if your options hash will remain unchanged, you can build a singl
 
 ```ruby
 options = { ... }
-subscriber = Concord::Subscriber.new(options)
+subscriber = Circuitry::Subscriber.new(options)
 subscriber.subscribe('https://...') do |message, topic_name|
   # ...
 end
@@ -139,7 +139,7 @@ asynchronous support:
 1. Forking is not supported on all platforms (e.g.: Windows and NetBSD 4),
    requiring that your implementation use synchronous requests in such
    circumstances.  You can determine if asynchronous requests will work by
-   calling `Concord.platform_supports_async?`.
+   calling `Circuitry.platform_supports_async?`.
 
 2. Forking results in resources being copied from the parent process to the child
    process.  In order to prevent database connection errors and the like, you
@@ -176,7 +176,7 @@ and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
-1. Fork it ( https://github.com/kapost/concord/fork )
+1. Fork it ( https://github.com/kapost/circuitry/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

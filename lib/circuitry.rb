@@ -1,9 +1,9 @@
-require 'concord/version'
-require 'concord/configuration'
-require 'concord/publisher'
-require 'concord/subscriber'
+require 'circuitry/version'
+require 'circuitry/configuration'
+require 'circuitry/publisher'
+require 'circuitry/subscriber'
 
-module Concord
+module Circuitry
   def self.config(&block)
     @config ||= Configuration.new
     block.call(@config) if block_given?

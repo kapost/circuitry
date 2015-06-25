@@ -1,7 +1,7 @@
 require 'json'
-require 'concord/topic'
+require 'circuitry/topic'
 
-module Concord
+module Circuitry
   class Message
     attr_reader :raw
 

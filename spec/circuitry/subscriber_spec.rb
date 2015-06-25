@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Concord::Subscriber, type: :model do
+RSpec.describe Circuitry::Subscriber, type: :model do
   subject { described_class.new(queue, options) }
 
   let(:queue) { 'https://sqs.amazon.com/account/queue' }
@@ -47,6 +47,13 @@ RSpec.describe Concord::Subscriber, type: :model do
         it 'subscribes to SQS' do
           subject.subscribe(&block)
           expect(mock_sqs).to have_received(:receive_message).with(queue, any_args)
+        end
+
+        describe 'when a connection error is raised' do
+          it 'raises wraps the error' do
+            allow(subject).to receive(:receive_messages).and_raise(described_class::CONNECTION_ERRORS.first, 'Forbidden')
+            expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
+          end
         end
 
         shared_examples_for 'a valid subscribe request' do
@@ -158,7 +165,7 @@ RSpec.describe Concord::Subscriber, type: :model do
 
         it 'logs a warning' do
           subject.subscribe(&block)
-          expect(logger).to have_received(:warn).with('Concord unable to subscribe: AWS configuration is not set.')
+          expect(logger).to have_received(:warn).with('Circuitry unable to subscribe: AWS configuration is not set.')
         end
       end
     end

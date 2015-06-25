@@ -1,7 +1,7 @@
-require 'concord/services/sns'
-require 'concord/topic'
+require 'circuitry/services/sns'
+require 'circuitry/topic'
 
-module Concord
+module Circuitry
   class TopicCreatorError < StandardError; end
 
   class TopicCreator

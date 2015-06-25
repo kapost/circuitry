@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Concord::Message, type: :model do
+RSpec.describe Circuitry::Message, type: :model do
   subject { described_class.new(raw) }
 
   let(:raw) do
@@ -21,6 +21,6 @@ RSpec.describe Concord::Message, type: :model do
   its(:id) { is_expected.to eq id }
   its(:context) { is_expected.to eq context }
   its(:body) { is_expected.to eq body }
-  its(:topic) { is_expected.to eq Concord::Topic.new(arn) }
+  its(:topic) { is_expected.to eq Circuitry::Topic.new(arn) }
   its(:receipt_handle) { is_expected.to eq handle }
 end
