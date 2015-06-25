@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Concord::TopicCreator, type: :model do
+RSpec.describe Circuitry::TopicCreator, type: :model do
   describe '.find_or_create' do
     subject { described_class }
 
@@ -39,7 +39,7 @@ RSpec.describe Concord::TopicCreator, type: :model do
       let(:arn) { 'arn:aws:sns:us-east-1:123456789012:some-topic-name' }
 
       it 'returns the topic' do
-        expect(subject.topic).to be_a Concord::Topic
+        expect(subject.topic).to be_a Circuitry::Topic
       end
 
       it 'sets the topic ARN' do
@@ -51,7 +51,7 @@ RSpec.describe Concord::TopicCreator, type: :model do
       let(:body) { {} }
 
       it 'raises an error' do
-        expect { subject.topic }.to raise_error(Concord::TopicCreatorError)
+        expect { subject.topic }.to raise_error(Circuitry::TopicCreatorError)
       end
     end
   end

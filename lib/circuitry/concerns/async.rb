@@ -1,4 +1,4 @@
-module Concord
+module Circuitry
   class NotSupportedError < StandardError; end
 
   module Concerns
@@ -11,7 +11,7 @@ module Concord
       end
 
       def platform_supports_async?
-        Concord.platform_supports_async?
+        Circuitry.platform_supports_async?
       end
     end
   end

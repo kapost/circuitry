@@ -1,17 +1,17 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'concord/version'
+require 'circuitry/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'concord'
-  spec.version       = Concord::VERSION
+  spec.name          = 'circuitry'
+  spec.version       = Circuitry::VERSION
   spec.authors       = ['Matt Huggins']
   spec.email         = ['matt.huggins@kapost.com']
 
   spec.summary       = %q{Kapost notification pub/sub and message queue processing.}
   spec.description   = %q{Amazon SNS publishing and SQS queue processing.}
-  spec.homepage      = 'https://github.com/kapost/concord'
+  spec.homepage      = 'https://github.com/kapost/circuitry'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }

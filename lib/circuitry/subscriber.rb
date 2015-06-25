@@ -1,8 +1,8 @@
-require 'concord/concerns/async'
-require 'concord/services/sqs'
-require 'concord/message'
+require 'circuitry/concerns/async'
+require 'circuitry/services/sqs'
+require 'circuitry/message'
 
-module Concord
+module Circuitry
   class SubscribeError < StandardError; end
 
   class Subscriber
@@ -36,7 +36,7 @@ module Concord
       raise ArgumentError.new('block required') if block.nil?
 
       unless can_subscribe?
-        logger.warn('Concord unable to subscribe: AWS configuration is not set.')
+        logger.warn('Circuitry unable to subscribe: AWS configuration is not set.')
         return
       end
 
@@ -100,15 +100,15 @@ module Concord
     end
 
     def logger
-      Concord.config.logger
+      Circuitry.config.logger
     end
 
     def error_handler
-      Concord.config.error_handler
+      Circuitry.config.error_handler
     end
 
     def can_subscribe?
-      Concord.config.aws_options.values.all? do |value|
+      Circuitry.config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end

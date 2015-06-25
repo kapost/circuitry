@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Concord::Publisher, type: :model do
+RSpec.describe Circuitry::Publisher, type: :model do
   subject { described_class.new(options) }
 
   let(:options) { {} }
@@ -31,7 +31,7 @@ RSpec.describe Concord::Publisher, type: :model do
       let(:mock_sns) { double('SNS', publish: true) }
 
       before do
-        allow(Concord::TopicCreator).to receive(:find_or_create).with(topic_name).and_return(topic)
+        allow(Circuitry::TopicCreator).to receive(:find_or_create).with(topic_name).and_return(topic)
         allow(subject).to receive(:sns).and_return(mock_sns)
       end
 
@@ -89,7 +89,7 @@ RSpec.describe Concord::Publisher, type: :model do
 
         it 'logs a warning' do
           subject.publish(topic_name, object)
-          expect(logger).to have_received(:warn).with('Concord unable to publish: AWS configuration is not set.')
+          expect(logger).to have_received(:warn).with('Circuitry unable to publish: AWS configuration is not set.')
         end
       end
     end

@@ -1,13 +1,13 @@
 require 'spec_helper'
 
 sqs_class = Class.new do
-  include Concord::Services::SQS
+  include Circuitry::Services::SQS
 end
 
 RSpec.describe sqs_class, type: :model do
   describe '#sqs' do
     before do
-      allow(Concord.config).to receive(:aws_options).and_return(aws_options)
+      allow(Circuitry.config).to receive(:aws_options).and_return(aws_options)
     end
 
     let(:aws_options) { { aws_access_key_id: 'foo', aws_secret_access_key: 'bar' } }

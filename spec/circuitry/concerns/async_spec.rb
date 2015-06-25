@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 async_class = Class.new do
-  include Concord::Concerns::Async
+  include Circuitry::Concerns::Async
 end
 
 RSpec.describe async_class, type: :model do
@@ -36,19 +36,19 @@ RSpec.describe async_class, type: :model do
       end
 
       it 'raises an error' do
-        expect { subject.process_asynchronously(&block) }.to raise_error(Concord::NotSupportedError)
+        expect { subject.process_asynchronously(&block) }.to raise_error(Circuitry::NotSupportedError)
       end
     end
   end
 
   describe '#platform_supports_async?' do
     it 'returns true when delegate returns true' do
-      allow(Concord).to receive(:platform_supports_async?).and_return(true)
+      allow(Circuitry).to receive(:platform_supports_async?).and_return(true)
       expect(subject).to be_platform_supports_async
     end
 
     it 'returns false when delegate returns false' do
-      allow(Concord).to receive(:platform_supports_async?).and_return(false)
+      allow(Circuitry).to receive(:platform_supports_async?).and_return(false)
       expect(subject).to_not be_platform_supports_async
     end
   end

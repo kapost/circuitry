@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-RSpec.describe Concord, type: :model do
+RSpec.describe Circuitry, type: :model do
   subject { described_class }
 
   describe '.config' do
     it 'returns a configuration object' do
-      expect(subject.config).to be_a Concord::Configuration
+      expect(subject.config).to be_a Circuitry::Configuration
     end
 
     it 'always returns the same object' do
@@ -26,7 +26,7 @@ RSpec.describe Concord, type: :model do
       object = double('Object')
       options = { foo: 'bar' }
 
-      allow(Concord::Publisher).to receive(:new).with(options).and_return(publisher)
+      allow(Circuitry::Publisher).to receive(:new).with(options).and_return(publisher)
       subject.publish(topic, object, options)
       expect(publisher).to have_received(:publish).with(topic, object)
     end
@@ -39,7 +39,7 @@ RSpec.describe Concord, type: :model do
       block = -> { }
       options = { foo: 'bar' }
 
-      allow(Concord::Subscriber).to receive(:new).with(queue, options).and_return(subscriber)
+      allow(Circuitry::Subscriber).to receive(:new).with(queue, options).and_return(subscriber)
       subject.subscribe(queue, options, &block)
       expect(subscriber).to have_received(:subscribe).with(no_args, &block)
     end

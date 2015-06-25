@@ -1,7 +1,7 @@
 require 'logger'
 require 'virtus'
 
-module Concord
+module Circuitry
   class Configuration
     include Virtus::Model
 
