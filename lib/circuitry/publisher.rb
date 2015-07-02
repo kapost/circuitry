@@ -17,7 +17,7 @@ module Circuitry
     def initialize(options = {})
       options = DEFAULT_OPTIONS.merge(options)
 
-      @async = !!options[:async]
+      self.async = options[:async]
     end
 
     def publish(topic_name, object)
@@ -39,10 +39,6 @@ module Circuitry
       else
         process.call
       end
-    end
-
-    def async?
-      @async
     end
 
     private
