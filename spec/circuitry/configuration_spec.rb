@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 RSpec.describe Circuitry::Configuration, type: :model do
+  describe '#async_strategy=' do
+    pending
+  end
+
   describe '#aws_options' do
     before do
       subject.access_key = 'access_key'

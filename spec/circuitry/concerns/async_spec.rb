@@ -5,6 +5,14 @@ async_class = Class.new do
 end
 
 RSpec.describe async_class, type: :model do
+  describe '#async=' do
+    pending
+  end
+
+  describe '#async?' do
+    pending
+  end
+
   describe '#process_asynchronously' do
     before do
       allow(subject).to receive(:fork).and_return(pid)

@@ -6,6 +6,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
   let(:queue) { 'https://sqs.amazon.com/account/queue' }
   let(:options) { {} }
 
+  it { is_expected.to be_a Circuitry::Concerns::Async }
+
   describe '#subscribe' do
     describe 'when queue is not set' do
       let(:queue) { nil }
@@ -190,14 +192,6 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
     it 'returns the initializer value' do
       expect(subject.batch_size).to eq 321
-    end
-  end
-
-  describe '#async?' do
-    let(:options) { { async: true } }
-
-    it 'returns the initializer value' do
-      expect(subject).to be_async
     end
   end
 end
