@@ -7,7 +7,7 @@ module Circuitry
         include Processor
 
         def process(&block)
-          pid = fork(&block)
+          pid = fork { process_entry(&block) }
           Process.detach(pid)
         end
 
