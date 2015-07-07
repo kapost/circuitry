@@ -10,7 +10,7 @@ module Circuitry
 
     protected
 
-    def process_entry(&block)
+    def safely_process(&block)
       begin
         block.call
       rescue => e

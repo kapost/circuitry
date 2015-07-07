@@ -15,9 +15,9 @@ end
 RSpec.describe Circuitry::Processor, type: :model do
   subject { processor_class.new }
 
-  describe '.process_entry' do
+  describe '.safely_process' do
     def process
-      subject.send(:process_entry, &block)
+      subject.send(:safely_process, &block)
     end
 
     describe 'when the block raises an error' do
