@@ -36,6 +36,8 @@ Circuitry.config do |c|
     HoneyBadger.notify(error)
     HoneyBadger.flush
   end
+  c.publish_async_strategy = :batch
+  c.subscribe_async_strategy = :thread
 end
 ```
 
@@ -52,6 +54,21 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
+* `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
+  determines how asynchronous publish requests are processed.  *(optional,
+  default: `:fork`)*
+  * `:fork`: Forks a detached child process that immediately sends the request.
+  * `:thread`: Creates a new thread that immediately sends the request.  Because
+    threads are not guaranteed to complete when the process exits, completion can
+    be ensured by calling `Concord.flush`.
+  * `:batch`: Stores the request in memory to be submitted later.  Batched
+    requests must be manually sent by calling `Concord.flush`.
+* `subscribe_async_strategy`: One of `:fork` or `:thread` that determines how
+  asynchronous subscribe requests are processed.  *(optional, default: `:fork`)*
+  * `:fork`: Forks a detached child process that immediately begins querying the
+    queue.
+  * `:thread`: Creates a new thread that immediately sends begins querying the
+    queue.
 
 ### Publishing
 
@@ -68,9 +85,11 @@ Circuitry.publish('any-topic-name', obj)
 The `publish` method also accepts options that impact instantiation of the
 `Publisher` object, which currently includes the following options.
 
-* `:async` - Whether or not publishing should occur in the background.  Please
-   refer to the [Asynchronous Support](#asynchronous-support) section for more
-   details regarding this option.  (default: false)
+* `:async` - Whether or not publishing should occur in the background.  Accepts
+  one of `:fork`, `:thread`, `:batch`, `true`, or `false`.  Passing `true` uses
+  the `publish_async_strategy` value from the gem configuration.  Please refer to
+  the [Asynchronous Support](#asynchronous-support) section for more details
+  regarding this option.  *(default: `false`)*
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
@@ -101,14 +120,16 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently includes the following options.
 
-* `:async` - Whether or not subscribing should occur in the background.  Please
-   refer to the [Asynchronous Support](#asynchronous-support) section for more
-   details regarding this option.  (default: false)
+* `:async` - Whether or not subscribing should occur in the background.  Accepts
+  one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
+  `subscribe_async_strategy` value from the gem configuration.  Please refer to
+  the [Asynchronous Support](#asynchronous-support) section for more details
+  regarding this option.  *(default: `false`)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS.  Anything above 0 results in long-polling, while 0 results in
-  short-polling.  (default: 10)
+  short-polling.  *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
-  (default: 10)
+  *(default: 10)*
 
 ```ruby
 Circuitry.subscribe('https://...', async: true, wait_time: 60, batch_size: 20) do |message, topic_name|
@@ -128,6 +149,8 @@ end
 ```
 
 ### Asynchronous Support
+
+#### Forking
 
 Publishing or subscribing asynchronously occurs by forking a child process.  That
 child is then detached so that your application does not need to worry about
@@ -163,6 +186,14 @@ asynchronous support:
 
    Refer to your adapter's documentation to determine how resources are handled
    with regards to forking.
+
+#### Threading
+
+TODO
+
+#### Batching
+
+TODO
 
 ## Development
 

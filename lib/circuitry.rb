@@ -1,5 +1,7 @@
 require 'circuitry/version'
-require 'circuitry/batcher'
+require 'circuitry/processor'
+require 'circuitry/processors/batcher'
+require 'circuitry/processors/threader'
 require 'circuitry/configuration'
 require 'circuitry/publisher'
 require 'circuitry/subscriber'
@@ -20,6 +22,7 @@ module Circuitry
   end
 
   def self.flush
-    Batcher.flush
+    Processors::Batcher.flush
+    Processors::Threader.flush
   end
 end

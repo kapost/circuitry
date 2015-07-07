@@ -41,6 +41,10 @@ module Circuitry
       end
     end
 
+    def self.default_async_strategy
+      Circuitry.config.publish_async_strategy
+    end
+
     private
 
     def logger

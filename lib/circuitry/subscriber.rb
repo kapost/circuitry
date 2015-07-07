@@ -58,6 +58,14 @@ module Circuitry
       end
     end
 
+    def self.async_strategies
+      super - [:batch]
+    end
+
+    def self.default_async_strategy
+      Circuitry.config.subscribe_async_strategy
+    end
+
     protected
 
     attr_writer :queue, :wait_time, :batch_size
