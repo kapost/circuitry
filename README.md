@@ -60,9 +60,9 @@ Available configuration options include:
   * `:fork`: Forks a detached child process that immediately sends the request.
   * `:thread`: Creates a new thread that immediately sends the request.  Because
     threads are not guaranteed to complete when the process exits, completion can
-    be ensured by calling `Concord.flush`.
+    be ensured by calling `Circuitry.flush`.
   * `:batch`: Stores the request in memory to be submitted later.  Batched
-    requests must be manually sent by calling `Concord.flush`.
+    requests must be manually sent by calling `Circuitry.flush`.
 * `subscribe_async_strategy`: One of `:fork` or `:thread` that determines how
   asynchronous subscribe requests are processed.  *(optional, default: `:fork`)*
   * `:fork`: Forks a detached child process that immediately begins querying the
@@ -73,8 +73,8 @@ Available configuration options include:
 ### Publishing
 
 Publishing is done via the `Circuitry.publish` method.  It accepts a topic name
-the represents the SNS topic along with any non-nil object, representing the data
-to be serialized.  Whatever object is called will have its `to_json` method
+that represents the SNS topic along with any non-nil object, representing the
+data to be serialized.  Whatever object is called will have its `to_json` method
 called for serialization.
 
 ```ruby
@@ -150,19 +150,22 @@ end
 
 ### Asynchronous Support
 
+Publishing supports three asynchronous strategies (forking, threading, and
+batching) while subscribing supports two (forking and threading).
+
 #### Forking
 
-Publishing or subscribing asynchronously occurs by forking a child process.  That
-child is then detached so that your application does not need to worry about
-waiting for the process to finish.
+When forking a child process, that child is detached so that your application
+does not need to worry about waiting for the process to finish.  Forked requests
+begin processing immediately and do not have any overhead in terms of waiting for
+them to complete.
 
 There are two important notes regarding forking in general as it relates to
 asynchronous support:
 
 1. Forking is not supported on all platforms (e.g.: Windows and NetBSD 4),
-   requiring that your implementation use synchronous requests in such
-   circumstances.  You can determine if asynchronous requests will work by
-   calling `Circuitry.platform_supports_async?`.
+   requiring that your implementation use synchronous requests or an alternative
+   asynchronous strategy in such circumstances.
 
 2. Forking results in resources being copied from the parent process to the child
    process.  In order to prevent database connection errors and the like, you
@@ -189,11 +192,15 @@ asynchronous support:
 
 #### Threading
 
-TODO
+Threaded publish and subscribe requests begin processing immediately.  Unlike
+forking, it's up to you to ensure that all threads complete before your
+application exits.  This can be done by calling `Circuitry.flush`.
 
 #### Batching
 
-TODO
+Batched publish and subscribe requests are queued in memory and do not begin
+processing until you explicit flush them.  This can be done by calling
+`Circuitry.flush`.
 
 ## Development
 
