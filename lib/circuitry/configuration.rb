@@ -10,11 +10,11 @@ module Circuitry
     attribute :region, String, default: 'us-east-1'
     attribute :logger, Logger, default: Logger.new(STDERR)
     attribute :error_handler
-    attribute :publish_async_strategy, Object, default: :fork
-    attribute :subscribe_async_strategy, Object, default: :fork
+    attribute :publish_async_strategy, Symbol, default: ->(page, attribute) { :fork }
+    attribute :subscribe_async_strategy, Symbol, default: ->(page, attribute) { :fork }
 
     def publish_async_strategy=(value)
-      unless Concerns::Publisher.async_strategies.include?(value)
+      unless Publisher.async_strategies.include?(value)
         raise ArgumentError, "invalid value `#{value}`, must be one of #{Concerns::Publisher.async_strategies.inspect}"
       end
 
@@ -22,7 +22,7 @@ module Circuitry
     end
 
     def subscribe_async_strategy=(value)
-      unless Concerns::Subscriber.async_strategies.include?(value)
+      unless Subscriber.async_strategies.include?(value)
         raise ArgumentError, "invalid value `#{value}`, must be one of #{Concerns::Subscriber.async_strategies.inspect}"
       end
 

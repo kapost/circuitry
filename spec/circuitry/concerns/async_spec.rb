@@ -2,6 +2,10 @@ require 'spec_helper'
 
 async_class = Class.new do
   include Circuitry::Concerns::Async
+
+  def self.default_async_strategy
+    :fork
+  end
 end
 
 RSpec.describe async_class, type: :model do
