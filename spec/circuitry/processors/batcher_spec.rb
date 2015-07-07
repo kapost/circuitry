@@ -14,7 +14,7 @@ RSpec.describe Circuitry::Processors::Batcher, type: :model do
     end
 
     it 'adds the block to the pool' do
-      subject.batch(&block)
+      subject.process(&block)
       expect(pool).to have_received(:<<).with(block)
     end
   end

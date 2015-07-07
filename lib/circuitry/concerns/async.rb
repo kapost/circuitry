@@ -1,4 +1,5 @@
 require 'circuitry/processors/batcher'
+require 'circuitry/processors/forker'
 require 'circuitry/processors/threader'
 
 module Circuitry
@@ -23,7 +24,7 @@ module Circuitry
       end
 
       def process_asynchronously(&block)
-        public_send(:"process_via_#{async}", &block)
+        send(:"process_via_#{async}", &block)
       end
 
       def async=(value)
@@ -52,16 +53,15 @@ module Circuitry
       end
 
       def process_via_fork(&block)
-        pid = fork(&block)
-        Process.detach(pid)
+        Processors::Forker.process(&block)
       end
 
       def process_via_thread(&block)
-        Processors::Threader.thread(&block)
+        Processors::Threader.process(&block)
       end
 
       def process_via_batch(&block)
-        Processors::Batcher.batch(&block)
+        Processors::Batcher.process(&block)
       end
     end
   end

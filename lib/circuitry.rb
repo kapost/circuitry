@@ -1,6 +1,7 @@
 require 'circuitry/version'
 require 'circuitry/processor'
 require 'circuitry/processors/batcher'
+require 'circuitry/processors/forker'
 require 'circuitry/processors/threader'
 require 'circuitry/configuration'
 require 'circuitry/publisher'
@@ -22,7 +23,8 @@ module Circuitry
   end
 
   def self.flush
-    Processors::Batcher.flush
-    Processors::Threader.flush
+    Processors.constants.each do |const|
+      Processors.const_get(const).flush
+    end
   end
 end

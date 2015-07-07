@@ -5,7 +5,7 @@ RSpec.describe Circuitry::Processors::Threader, type: :model do
 
   it { is_expected.to be_a Circuitry::Processor }
 
-  describe '.thread' do
+  describe '.process' do
     let(:pool) { double('Array', '<<': []) }
     let(:block) { ->{ } }
     let(:thread) { double('Thread', join: true) }
@@ -16,12 +16,12 @@ RSpec.describe Circuitry::Processors::Threader, type: :model do
     end
 
     it 'wraps the block in a thread' do
-      subject.thread(&block)
+      subject.process(&block)
       expect(Thread).to have_received(:new).with(no_args, &block)
     end
 
     it 'adds the thread to the pool' do
-      subject.thread(&block)
+      subject.process(&block)
       expect(pool).to have_received(:<<).with(thread)
     end
   end

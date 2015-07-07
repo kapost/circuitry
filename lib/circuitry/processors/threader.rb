@@ -6,9 +6,9 @@ module Circuitry
       class << self
         include Processor
 
-        def thread(&block)
+        def process(&block)
           raise ArgumentError, 'no block given' unless block_given?
-          pool << Thread.new { process(&block) }
+          pool << Thread.new { process_entry(&block) }
         end
 
         def flush

@@ -1,8 +1,16 @@
 module Circuitry
   module Processor
+    def process
+      raise NotImplementedError, "#{self.to_s} must implement class method `process`"
+    end
+
+    def flush
+      raise NotImplementedError, "#{self.to_s} must implement class method `flush`"
+    end
+
     protected
 
-    def process(&block)
+    def process_entry(&block)
       begin
         block.call
       rescue => e

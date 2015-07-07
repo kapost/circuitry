@@ -2,19 +2,16 @@ require 'circuitry/processor'
 
 module Circuitry
   module Processors
-    module Batcher
+    module Forker
       class << self
         include Processor
 
         def process(&block)
-          raise ArgumentError, 'no block given' unless block_given?
-          pool << block
+          pid = fork(&block)
+          Process.detach(pid)
         end
 
         def flush
-          pool.each { |block| process_entry(&block) }
-        ensure
-          pool.clear
         end
       end
     end

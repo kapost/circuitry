@@ -2,14 +2,22 @@ require 'spec_helper'
 
 processor_class = Class.new do
   include Circuitry::Processor
+
+  def process(&block)
+    block.call
+  end
+
+  def flush
+    pool.clear
+  end
 end
 
 RSpec.describe Circuitry::Processor, type: :model do
   subject { processor_class.new }
 
-  describe '.process' do
+  describe '.process_entry' do
     def process
-      subject.send(:process, &block)
+      subject.send(:process_entry, &block)
     end
 
     describe 'when the block raises an error' do
