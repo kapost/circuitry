@@ -3,23 +3,18 @@ require 'circuitry/processor'
 module Circuitry
   module Processors
     module Batcher
-      extend Processor
-
       class << self
+        include Processor
+
         def batch(&block)
           raise ArgumentError, 'no block given' unless block_given?
-          batches << block
+          pool << block
         end
 
         def flush
-          batches.each(&method(:process))
-          batches.clear
-        end
-
-        private
-
-        def batches
-          @batches ||= []
+          pool.each { |block| process(&block) }
+        ensure
+          pool.clear
         end
       end
     end

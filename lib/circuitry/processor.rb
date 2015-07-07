@@ -1,5 +1,7 @@
 module Circuitry
   module Processor
+    protected
+
     def process(&block)
       begin
         block.call
@@ -7,16 +9,20 @@ module Circuitry
         logger.error("Error publishing message: #{e}")
         error_handler.call(e) if error_handler
       end
+    end
 
-      private
+    def pool
+      @pool ||= []
+    end
 
-      def logger
-        Circuitry.config.logger
-      end
+    private
 
-      def error_handler
-        Circuitry.config.error_handler
-      end
+    def logger
+      Circuitry.config.logger
+    end
+
+    def error_handler
+      Circuitry.config.error_handler
     end
   end
 end

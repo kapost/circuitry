@@ -3,23 +3,18 @@ require 'circuitry/processor'
 module Circuitry
   module Processors
     module Threader
-      extend Processor
-
       class << self
+        include Processor
+
         def thread(&block)
           raise ArgumentError, 'no block given' unless block_given?
-          threads << Thread.new { process(&block) }
+          pool << Thread.new { process(&block) }
         end
 
         def flush
-          threads.each(&:join)
-          threads.clear
-        end
-
-        private
-
-        def threads
-          @threads ||= []
+          pool.each(&:join)
+        ensure
+          pool.clear
         end
       end
     end
