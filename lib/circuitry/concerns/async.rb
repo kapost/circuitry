@@ -27,11 +27,11 @@ module Circuitry
       end
 
       def async=(value)
-        value = self.class.default_async_strategy if value === true
-        value = false if value.nil?
-
-        unless self.class.async_strategies.include?(value) || value === false
-          raise ArgumentError, "Invalid value `#{value.inspect}`, must be one of #{[true, false].concat(self.class.async_strategies).inspect}"
+        value = case value
+          when false, nil then false
+          when true then self.class.default_async_strategy
+          when *self.class.async_strategies then value
+          else raise ArgumentError, "Invalid value `#{value.inspect}`, must be one of #{[true, false].concat(self.class.async_strategies).inspect}"
         end
 
         if value == :fork && !platform_supports_forking?
