@@ -14,18 +14,12 @@ module Circuitry
     attribute :subscribe_async_strategy, Symbol, default: ->(page, attribute) { :fork }
 
     def publish_async_strategy=(value)
-      unless Publisher.async_strategies.include?(value)
-        raise ArgumentError, "invalid value `#{value}`, must be one of #{Concerns::Publisher.async_strategies.inspect}"
-      end
-
+      validate(value, Publisher.async_strategies)
       super
     end
 
     def subscribe_async_strategy=(value)
-      unless Subscriber.async_strategies.include?(value)
-        raise ArgumentError, "invalid value `#{value}`, must be one of #{Concerns::Subscriber.async_strategies.inspect}"
-      end
-
+      validate(value, Subscriber.async_strategies)
       super
     end
 
@@ -35,6 +29,14 @@ module Circuitry
           aws_secret_access_key: secret_key,
           region:                region,
       }
+    end
+
+    private
+
+    def validate(value, permitted_values)
+      unless permitted_values.include?(value)
+        raise ArgumentError, "invalid value `#{value}`, must be one of #{permitted_values.inspect}"
+      end
     end
   end
 end
