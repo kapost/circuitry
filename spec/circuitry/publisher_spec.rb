@@ -5,6 +5,8 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
   let(:options) { {} }
 
+  it { is_expected.to be_a Circuitry::Concerns::Async }
+
   describe '#publish' do
     describe 'when topic name is not set' do
       let(:topic_name) { nil }
@@ -92,14 +94,6 @@ RSpec.describe Circuitry::Publisher, type: :model do
           expect(logger).to have_received(:warn).with('Circuitry unable to publish: AWS configuration is not set.')
         end
       end
-    end
-  end
-
-  describe '#async?' do
-    let(:options) { { async: true } }
-
-    it 'returns the initializer value' do
-      expect(subject).to be_async
     end
   end
 end

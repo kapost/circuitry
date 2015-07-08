@@ -36,6 +36,8 @@ Circuitry.config do |c|
     HoneyBadger.notify(error)
     HoneyBadger.flush
   end
+  c.publish_async_strategy = :batch
+  c.subscribe_async_strategy = :thread
 end
 ```
 
@@ -52,12 +54,27 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
+* `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
+  determines how asynchronous publish requests are processed.  *(optional,
+  default: `:fork`)*
+  * `:fork`: Forks a detached child process that immediately sends the request.
+  * `:thread`: Creates a new thread that immediately sends the request.  Because
+    threads are not guaranteed to complete when the process exits, completion can
+    be ensured by calling `Circuitry.flush`.
+  * `:batch`: Stores the request in memory to be submitted later.  Batched
+    requests must be manually sent by calling `Circuitry.flush`.
+* `subscribe_async_strategy`: One of `:fork` or `:thread` that determines how
+  asynchronous subscribe requests are processed.  *(optional, default: `:fork`)*
+  * `:fork`: Forks a detached child process that immediately begins querying the
+    queue.
+  * `:thread`: Creates a new thread that immediately sends begins querying the
+    queue.
 
 ### Publishing
 
 Publishing is done via the `Circuitry.publish` method.  It accepts a topic name
-the represents the SNS topic along with any non-nil object, representing the data
-to be serialized.  Whatever object is called will have its `to_json` method
+that represents the SNS topic along with any non-nil object, representing the
+data to be serialized.  Whatever object is called will have its `to_json` method
 called for serialization.
 
 ```ruby
@@ -68,9 +85,11 @@ Circuitry.publish('any-topic-name', obj)
 The `publish` method also accepts options that impact instantiation of the
 `Publisher` object, which currently includes the following options.
 
-* `:async` - Whether or not publishing should occur in the background.  Please
-   refer to the [Asynchronous Support](#asynchronous-support) section for more
-   details regarding this option.  (default: false)
+* `:async` - Whether or not publishing should occur in the background.  Accepts
+  one of `:fork`, `:thread`, `:batch`, `true`, or `false`.  Passing `true` uses
+  the `publish_async_strategy` value from the gem configuration.  Please refer to
+  the [Asynchronous Support](#asynchronous-support) section for more details
+  regarding this option.  *(default: `false`)*
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
@@ -89,8 +108,8 @@ publisher.publish('my-topic-name', obj)
 ### Subscribing
 
 Subscribing is done via the `Circuitry.subscribe` method.  It accepts an SQS queue
-URL and takes a block for processing each message.  This method performs
-synchronously by default, and as such does not return.
+URL and takes a block for processing each message.  This method **indefinitely
+blocks**, processing messages as they are enqueued.
 
 ```ruby
 Circuitry.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
@@ -101,14 +120,18 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently includes the following options.
 
-* `:async` - Whether or not subscribing should occur in the background.  Please
-   refer to the [Asynchronous Support](#asynchronous-support) section for more
-   details regarding this option.  (default: false)
+* `:async` - Whether or not subscribing should occur in the background.  Accepts
+  one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
+  `subscribe_async_strategy` value from the gem configuration.  Passing an
+  asynchronous value will cause messages to be handled concurrently, meaning
+  that queued messages *might not be processed in the order they're received*.
+  Please refer to the [Asynchronous Support](#asynchronous-support) section for
+  more details regarding this option.  *(default: `false`)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS.  Anything above 0 results in long-polling, while 0 results in
-  short-polling.  (default: 10)
+  short-polling.  *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
-  (default: 10)
+  *(default: 10)*
 
 ```ruby
 Circuitry.subscribe('https://...', async: true, wait_time: 60, batch_size: 20) do |message, topic_name|
@@ -129,17 +152,22 @@ end
 
 ### Asynchronous Support
 
-Publishing or subscribing asynchronously occurs by forking a child process.  That
-child is then detached so that your application does not need to worry about
-waiting for the process to finish.
+Publishing supports three asynchronous strategies (forking, threading, and
+batching) while subscribing supports two (forking and threading).
+
+#### Forking
+
+When forking a child process, that child is detached so that your application
+does not need to worry about waiting for the process to finish.  Forked requests
+begin processing immediately and do not have any overhead in terms of waiting for
+them to complete.
 
 There are two important notes regarding forking in general as it relates to
 asynchronous support:
 
 1. Forking is not supported on all platforms (e.g.: Windows and NetBSD 4),
-   requiring that your implementation use synchronous requests in such
-   circumstances.  You can determine if asynchronous requests will work by
-   calling `Circuitry.platform_supports_async?`.
+   requiring that your implementation use synchronous requests or an alternative
+   asynchronous strategy in such circumstances.
 
 2. Forking results in resources being copied from the parent process to the child
    process.  In order to prevent database connection errors and the like, you
@@ -163,6 +191,18 @@ asynchronous support:
 
    Refer to your adapter's documentation to determine how resources are handled
    with regards to forking.
+
+#### Threading
+
+Threaded publish and subscribe requests begin processing immediately.  Unlike
+forking, it's up to you to ensure that all threads complete before your
+application exits.  This can be done by calling `Circuitry.flush`.
+
+#### Batching
+
+Batched publish and subscribe requests are queued in memory and do not begin
+processing until you explicit flush them.  This can be done by calling
+`Circuitry.flush`.
 
 ## Development
 

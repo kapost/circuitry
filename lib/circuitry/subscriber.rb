@@ -26,10 +26,10 @@ module Circuitry
 
       options = DEFAULT_OPTIONS.merge(options)
 
-      @queue = queue
-      @async = !!options[:async]
-      @wait_time = options[:wait_time]
-      @batch_size = options[:batch_size]
+      self.queue = queue
+      self.async = options[:async]
+      self.wait_time = options[:wait_time]
+      self.batch_size = options[:batch_size]
     end
 
     def subscribe(&block)
@@ -40,27 +40,27 @@ module Circuitry
         return
       end
 
-      process = -> do
-        loop do
-          begin
-            receive_messages(&block)
-          rescue *CONNECTION_ERRORS => e
-            logger.error "Connection error to #{queue}: #{e}"
-            raise SubscribeError.new(e)
-          end
+      loop do
+        begin
+          receive_messages(&block)
+        rescue *CONNECTION_ERRORS => e
+          logger.error("Connection error to #{queue}: #{e}")
+          raise SubscribeError.new(e)
         end
       end
-
-      if async?
-        process_asynchronously(&process)
-      else
-        process.call
-      end
     end
 
-    def async?
-      @async
+    def self.async_strategies
+      super - [:batch]
     end
+
+    def self.default_async_strategy
+      Circuitry.config.subscribe_async_strategy
+    end
+
+    protected
+
+    attr_writer :queue, :wait_time, :batch_size
 
     private
 
@@ -70,7 +70,15 @@ module Circuitry
       return if messages.empty?
 
       messages.each do |message|
-        process_message(message, &block)
+        process = -> do
+          process_message(message, &block)
+        end
+
+        if async?
+          process_asynchronously(&process)
+        else
+          process.call
+        end
       end
     end
 
@@ -78,12 +86,12 @@ module Circuitry
       message = Message.new(message)
 
       unless message.nil?
-        logger.info "Processing message #{message.id}"
+        logger.info("Processing message #{message.id}")
         handle_message(message, &block)
         delete_message(message)
       end
     rescue => e
-      logger.error "Error processing message #{message.id}: #{e}"
+      logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
     end
 

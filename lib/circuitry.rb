@@ -1,4 +1,8 @@
 require 'circuitry/version'
+require 'circuitry/processor'
+require 'circuitry/processors/batcher'
+require 'circuitry/processors/forker'
+require 'circuitry/processors/threader'
 require 'circuitry/configuration'
 require 'circuitry/publisher'
 require 'circuitry/subscriber'
@@ -18,7 +22,9 @@ module Circuitry
     Subscriber.new(queue, options).subscribe(&block)
   end
 
-  def self.platform_supports_async?
-    Process.respond_to?(:fork)
+  def self.flush
+    Processors.constants.each do |const|
+      Processors.const_get(const).flush
+    end
   end
 end

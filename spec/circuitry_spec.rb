@@ -45,15 +45,20 @@ RSpec.describe Circuitry, type: :model do
     end
   end
 
-  describe '.platform_supports_async?' do
-    it 'returns true when process can fork' do
-      allow(Process).to receive(:respond_to?).with(:fork).and_return(true)
-      expect(subject).to be_platform_supports_async
+  describe '.flush' do
+    it 'flushes batches' do
+      expect(Circuitry::Processors::Batcher).to receive(:flush)
+      subject.flush
     end
 
-    it 'returns false when process cannot fork' do
-      allow(Process).to receive(:respond_to?).with(:fork).and_return(false)
-      expect(subject).to_not be_platform_supports_async
+    it 'flushes forks' do
+      expect(Circuitry::Processors::Forker).to receive(:flush)
+      subject.flush
+    end
+
+    it 'flushes threads' do
+      expect(Circuitry::Processors::Threader).to receive(:flush)
+      subject.flush
     end
   end
 end
