@@ -40,21 +40,13 @@ module Circuitry
         return
       end
 
-      process = -> do
-        loop do
-          begin
-            receive_messages(&block)
-          rescue *CONNECTION_ERRORS => e
-            logger.error("Connection error to #{queue}: #{e}")
-            raise SubscribeError.new(e)
-          end
+      loop do
+        begin
+          receive_messages(&block)
+        rescue *CONNECTION_ERRORS => e
+          logger.error("Connection error to #{queue}: #{e}")
+          raise SubscribeError.new(e)
         end
-      end
-
-      if async?
-        process_asynchronously(&process)
-      else
-        process.call
       end
     end
 
@@ -78,7 +70,15 @@ module Circuitry
       return if messages.empty?
 
       messages.each do |message|
-        process_message(message, &block)
+        process = -> do
+          process_message(message, &block)
+        end
+
+        if async?
+          process_asynchronously(&process)
+        else
+          process.call
+        end
       end
     end
 

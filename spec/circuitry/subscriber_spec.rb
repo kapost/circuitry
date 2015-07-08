@@ -139,13 +139,20 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         describe 'asynchronously' do
           before do
             allow(subject).to receive(:process_asynchronously) { |&block| block.call }
+            allow(mock_sqs).to receive(:delete_message)
           end
 
           let(:options) { { async: true } }
+          let(:messages) do
+            [
+                { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json },
+                { 'MessageId' => 'two', 'ReceiptHandle' => 'delete-two', 'Body' => { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json },
+            ]
+          end
 
           it 'processes asynchronously' do
             subject.subscribe(&block)
-            expect(subject).to have_received(:process_asynchronously)
+            expect(subject).to have_received(:process_asynchronously).twice
           end
 
           it_behaves_like 'a valid subscribe request'

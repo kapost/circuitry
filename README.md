@@ -108,8 +108,8 @@ publisher.publish('my-topic-name', obj)
 ### Subscribing
 
 Subscribing is done via the `Circuitry.subscribe` method.  It accepts an SQS queue
-URL and takes a block for processing each message.  This method performs
-synchronously by default, and as such does not return.
+URL and takes a block for processing each message.  This method **indefinitely
+blocks**, processing messages as they are enqueued.
 
 ```ruby
 Circuitry.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
@@ -122,9 +122,11 @@ The `subscribe` method also accepts options that impact instantiation of the
 
 * `:async` - Whether or not subscribing should occur in the background.  Accepts
   one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
-  `subscribe_async_strategy` value from the gem configuration.  Please refer to
-  the [Asynchronous Support](#asynchronous-support) section for more details
-  regarding this option.  *(default: `false`)*
+  `subscribe_async_strategy` value from the gem configuration.  Passing an
+  asynchronous value will cause messages to be handled concurrently, meaning
+  that queued messages *might not be processed in the order they're received*.
+  Please refer to the [Asynchronous Support](#asynchronous-support) section for
+  more details regarding this option.  *(default: `false`)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS.  Anything above 0 results in long-polling, while 0 results in
   short-polling.  *(default: 10)*
