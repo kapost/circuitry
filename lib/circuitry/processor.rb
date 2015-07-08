@@ -14,7 +14,7 @@ module Circuitry
       begin
         block.call
       rescue => e
-        logger.error("Error publishing message: #{e}")
+        logger.error("Error handling message: #{e}")
         error_handler.call(e) if error_handler
       end
     end
