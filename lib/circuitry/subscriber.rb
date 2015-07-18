@@ -85,7 +85,11 @@ module Circuitry
 
       messages.each do |message|
         process = -> do
-          process_message(message, &block)
+          if lock_strategy.locked?(message.id)
+            logger.info("Ignoring duplicate message #{message.id}")
+          else
+            process_message(message, &block)
+          end
         end
 
         if async?
@@ -98,14 +102,12 @@ module Circuitry
 
     def process_message(message, &block)
       Timeout.timeout(timeout) do
-        message = Message.new(message)
 
         unless message.nil?
           logger.info("Processing message #{message.id}")
           handle_message(message, &block)
           delete_message(message)
           lock_strategy.hard_lock(message)
-          lock_strategy.soft_unlock(message)
         end
       end
     rescue => e

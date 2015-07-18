@@ -16,12 +16,12 @@ module Circuitry
 
       protected
 
-      def lock(key, timeout)
-        store[key] = Time.now + timeout
+      def lock(key, ttl)
+        store[key] = Time.now + ttl
       end
 
-      def release(key)
-        store.delete(key)
+      def ttl(key)
+        store[key]
       end
 
       private

@@ -252,7 +252,7 @@ by default.  This lock strategy should be avoided if running multiple subscriber
 processes.
 
 ```ruby
-Circuitry::Memory::Lock.new
+Circuitry::Lock::Memory.new
 ```
 
 #### Redis
@@ -260,10 +260,10 @@ Circuitry::Memory::Lock.new
 ```ruby
 # pass in redis client
 client = Redis.new(url: 'redis://localhost:6379')
-Circuitry::Memory::Redis.new(client: client)
+Circuitry::Lock::Redis.new(client: client)
 
 # pass in redis options
-Circuitry::Memory::Redis.new(url: 'redis://localhost:6379')
+Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
 ```
 
 #### Memcache
@@ -271,10 +271,51 @@ Circuitry::Memory::Redis.new(url: 'redis://localhost:6379')
 ```ruby
 # pass in dalli client
 client = Dalli::Client.new('localhost:11211', namespace: '...')
-Circuitry::Memory::Memcache.new(client: client)
+Circuitry::Lock::Memcache.new(client: client)
 
 # pass in dalli options
-Circuitry::Memory::Memcache.new(host: 'localhost:11211', namespace: '...')
+Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
+```
+
+#### Custom
+
+It's also possible to roll your own lock strategy.  Simply create a class that
+includes (or module that extends) `Circuitry::Lock::Base` and implements the
+`lock`, `ttl`, and `reap` methods.  For example, a database-backed solution
+might look something like the following:
+
+```ruby
+class DatabaseLockStrategy
+  def initialize(options = {})
+    super(options)
+    self.connection = options.fetch(:connection)
+  end
+
+  # Should perform an operation that will effectively release all expired keys.
+  def reap
+    connection.exec("DELETE FROM locks WHERE expires_at < '#{Time.now}'")
+  end
+
+  protected
+
+  # Accepts a key identifying the SQS message and the time TTL before the key
+  # should expire.  Should perform an operation that will effectively lock the
+  # key.
+  def lock(key, ttl)
+    connection.exec("INSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
+  end
+
+  # Accepts a key identifying the SQS message.  Must returns `nil` if the key
+  # does not exist or a `Time` object representing its expiration.
+  def ttl(key)
+    results = connection.exec("SELECT (timeout) FROM locks WHERE key = '#{key}'")
+    results.any? && Time.at(results.first[:timeout])
+  end
+
+  private
+
+  attr_reader :connection
+end
 ```
 
 ## Development
