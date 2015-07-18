@@ -243,11 +243,22 @@ processed.
 
 The circuitry gem handles this by caching SQS message IDs: first via a "soft
 lock" that denotes the message is about to be processed, then via a "hard lock"
-that denotes the message has finished processing.  The soft lock has a default
-timeout of 15 minutes (a seemingly sane amount of time during which processing
-most queue messages should certainly be able to complete), while the hard lock
-has a default timeout of 24 hours (based upon [a suggestion by an AWS employee]
-(https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
+that denotes the message has finished processing.
+
+The soft lock has a default TTL of 15 minutes (a seemingly sane amount of time
+during which processing most queue messages should certainly be able to
+complete), while the hard lock has a default TTL of 24 hours (based upon
+[a suggestion by an AWS employee](https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
+The soft and hard TTL values can be changed by passing a `:soft_ttl` or
+`:hard_ttl` value to the lock initializer, representing the number of seconds
+that a lock should persist.  For example:
+
+```ruby
+Circuitry.config.lock_strategy = Circuitry::Lock::Memory.new(
+    soft_ttl: 10 * 60,      # 10 minutes
+    hard_ttl: 48 * 60 * 60  # 48 hours
+)
+```
 
 #### Memory
 
@@ -337,8 +348,8 @@ class DatabaseLockStrategy
   # Accepts a key identifying the SQS message.  Must returns `nil` if the key
   # does not exist or a `Time` object representing its expiration.
   def expires_at(key)
-    results = connection.exec("SELECT (timeout) FROM locks WHERE key = '#{key}'")
-    results.any? && Time.at(results.first[:timeout])
+    results = connection.exec("SELECT (expires_at) FROM locks WHERE key = '#{key}'")
+    results.any? && results.first[:expires_at]
   end
 
   private
