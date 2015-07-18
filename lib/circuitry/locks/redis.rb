@@ -19,13 +19,13 @@ module Circuitry
       protected
 
       def lock(key, ttl)
-        client.set(key, (Time.now + timeout).to_i)
+        client.set(key, (Time.now + ttl).to_i)
         client.expire(key, ttl)
       end
 
       def expires_at(key)
         expires_at = client.get(key)
-        expires_at && Time.at(expires_at)
+        expires_at && Time.at(expires_at.to_i)
       end
 
       private

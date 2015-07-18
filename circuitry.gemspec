@@ -28,4 +28,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec', '~> 3.2'
   spec.add_development_dependency 'rspec-its', '~> 1.2'
   spec.add_development_dependency 'codeclimate-test-reporter'
+  spec.add_development_dependency 'redis'
+  spec.add_development_dependency 'mock_redis'
+  spec.add_development_dependency 'dalli'
+  spec.add_development_dependency 'memcache_mock'
 end
