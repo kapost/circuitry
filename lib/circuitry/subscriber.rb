@@ -102,13 +102,10 @@ module Circuitry
 
     def process_message(message, &block)
       Timeout.timeout(timeout) do
-
-        unless message.nil?
-          logger.info("Processing message #{message.id}")
-          handle_message(message, &block)
-          delete_message(message)
-          lock_strategy.hard_lock(message)
-        end
+        logger.info("Processing message #{message.id}")
+        handle_message(message, &block)
+        delete_message(message)
+        lock_strategy.hard_lock(message)
       end
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")

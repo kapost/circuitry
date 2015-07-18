@@ -20,7 +20,7 @@ module Circuitry
         store[key] = Time.now + ttl
       end
 
-      def ttl(key)
+      def expires_at(key)
         store[key]
       end
 

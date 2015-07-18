@@ -23,7 +23,7 @@ module Circuitry
         client.expire(key, ttl)
       end
 
-      def ttl(key)
+      def expires_at(key)
         expires_at = client.get(key)
         expires_at && Time.at(expires_at)
       end

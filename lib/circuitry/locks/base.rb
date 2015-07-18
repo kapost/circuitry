@@ -20,8 +20,8 @@ module Circuitry
       end
 
       def locked?(id)
-        expires_at = ttl(lock_key(id))
-        expires_at && expires_at >= Time.now
+        expires = expires_at(lock_key(id))
+        expires && expires >= Time.now
       end
 
       def reap
@@ -34,7 +34,7 @@ module Circuitry
         raise NotImplementedError
       end
 
-      def ttl(key)
+      def expires_at(key)
         raise NotImplementedError
       end
 

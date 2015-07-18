@@ -281,8 +281,8 @@ Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
 
 It's also possible to roll your own lock strategy.  Simply create a class that
 includes (or module that extends) `Circuitry::Lock::Base` and implements the
-`lock`, `ttl`, and `reap` methods.  For example, a database-backed solution
-might look something like the following:
+`lock`, `expires_at`, and `reap` methods.  For example, a database-backed
+solution might look something like the following:
 
 ```ruby
 class DatabaseLockStrategy
@@ -307,7 +307,7 @@ class DatabaseLockStrategy
 
   # Accepts a key identifying the SQS message.  Must returns `nil` if the key
   # does not exist or a `Time` object representing its expiration.
-  def ttl(key)
+  def expires_at(key)
     results = connection.exec("SELECT (timeout) FROM locks WHERE key = '#{key}'")
     results.any? && Time.at(results.first[:timeout])
   end
