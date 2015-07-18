@@ -349,7 +349,7 @@ class DatabaseLockStrategy
   # does not exist or a `Time` object representing its expiration.
   def expires_at(key)
     results = connection.exec("SELECT (expires_at) FROM locks WHERE key = '#{key}'")
-    results.any? && results.first[:expires_at]
+    results.num_tuples > 0 && results[0]['expires_at']
   end
 
   private
