@@ -313,6 +313,8 @@ solution might look something like the following:
 
 ```ruby
 class DatabaseLockStrategy
+  include Circuitry::Lock::Base
+
   def initialize(options = {})
     super(options)
     self.connection = options.fetch(:connection)
@@ -343,6 +345,14 @@ class DatabaseLockStrategy
 
   attr_reader :connection
 end
+```
+
+To use, simply create an instance of the class with your necessary options, and
+pass your lock instance as the `:lock_strategy`.
+
+```ruby
+connection = PG.connect(...)
+Circuitry.config.lock_strategy = DatabaseLockStrategy.new(connection: connection)
 ```
 
 ## Development
