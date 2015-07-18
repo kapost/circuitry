@@ -1,3 +1,4 @@
+require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sqs'
 require 'circuitry/message'
@@ -9,10 +10,11 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :wait_time, :batch_size, :max_retries, :failure_queue
+    attr_reader :queue, :timeout, :wait_time, :batch_size
 
     DEFAULT_OPTIONS = {
         async: false,
+        timeout: 15,
         wait_time: 10,
         batch_size: 10,
     }.freeze
@@ -28,6 +30,7 @@ module Circuitry
 
       self.queue = queue
       self.async = options[:async]
+      self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
       self.batch_size = options[:batch_size]
     end
@@ -60,7 +63,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :wait_time, :batch_size
+    attr_writer :queue, :timeout, :wait_time, :batch_size
 
     private
 
@@ -83,12 +86,14 @@ module Circuitry
     end
 
     def process_message(message, &block)
-      message = Message.new(message)
+      Timeout.timeout(timeout) do
+        message = Message.new(message)
 
-      unless message.nil?
-        logger.info("Processing message #{message.id}")
-        handle_message(message, &block)
-        delete_message(message)
+        unless message.nil?
+          logger.info("Processing message #{message.id}")
+          handle_message(message, &block)
+          delete_message(message)
+        end
       end
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")
