@@ -10,13 +10,14 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock_strategy
 
     DEFAULT_OPTIONS = {
         async: false,
         timeout: 15,
         wait_time: 10,
         batch_size: 10,
+        lock_strategy: Circuitry::Locks::Memory.new,
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -33,6 +34,7 @@ module Circuitry
       self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
       self.batch_size = options[:batch_size]
+      self.lock_strategy = options[:lock_strategy]
     end
 
     def subscribe(&block)
@@ -46,6 +48,7 @@ module Circuitry
       loop do
         begin
           receive_messages(&block)
+          lock_strategy.reap
         rescue *CONNECTION_ERRORS => e
           logger.error("Connection error to #{queue}: #{e}")
           raise SubscribeError.new(e)
@@ -63,7 +66,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :lock_strategy
 
     private
 
@@ -71,6 +74,14 @@ module Circuitry
       response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
       messages = response.body['Message']
       return if messages.empty?
+
+      messages.map! do |message|
+        Message.new(message)
+      end
+
+      messages.each do |message|
+        lock_strategy.soft_lock(message)
+      end
 
       messages.each do |message|
         process = -> do
@@ -93,6 +104,8 @@ module Circuitry
           logger.info("Processing message #{message.id}")
           handle_message(message, &block)
           delete_message(message)
+          lock_strategy.hard_lock(message)
+          lock_strategy.soft_unlock(message)
         end
       end
     rescue => e

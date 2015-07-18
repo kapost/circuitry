@@ -1,4 +1,8 @@
 require 'circuitry/version'
+require 'circuitry/locks/base'
+require 'circuitry/locks/memcache'
+require 'circuitry/locks/memory'
+require 'circuitry/locks/redis'
 require 'circuitry/processor'
 require 'circuitry/processors/batcher'
 require 'circuitry/processors/forker'

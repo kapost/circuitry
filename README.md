@@ -140,9 +140,20 @@ The `subscribe` method also accepts options that impact instantiation of the
   short-polling.  *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   *(default: 10)*
+* `:lock_strategy` - The store used to ensure that no duplicate messages are
+  processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
+  more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
 
 ```ruby
-Circuitry.subscribe('https://...', async: true, timeout: 20, wait_time: 60, batch_size: 20) do |message, topic_name|
+options = {
+  async: true,
+  timeout: 20,
+  wait_time: 60,
+  batch_size: 20,
+  lock_strategy: Circuitry::Locks::Redis.new(url: 'redis://...')
+}
+
+Circuitry.subscribe('https://...', options) do |message, topic_name|
   # ...
 end
 ```
@@ -211,6 +222,60 @@ application exits.  This can be done by calling `Circuitry.flush`.
 Batched publish and subscribe requests are queued in memory and do not begin
 processing until you explicit flush them.  This can be done by calling
 `Circuitry.flush`.
+
+### Lock Strategies
+
+The [Amazon SQS FAQ](http://aws.amazon.com/sqs/faqs/) includes the following
+important point:
+
+> Amazon SQS is engineered to provide “at least once” delivery of all messages in
+> its queues. Although most of the time each message will be delivered to your
+> application exactly once, you should design your system so that processing a
+> message more than once does not create any errors or inconsistencies.
+
+Given this, it's up to the user to ensure messages are not processed multiple
+times in the off chance that Amazon does not recognize that a message has been
+processed.
+
+The circuitry gem handles this by caching SQS message IDs: first via a "soft
+lock" that denotes the message is about to be processed, then via a "hard lock"
+that denotes the message has finished processing.  The soft lock has a default
+timeout of 15 minutes (a seemingly sane amount of time during which processing
+most queue messages should certainly be able to complete), while the hard lock
+has a default timeout of 24 hours (based upon [a suggestion by an AWS employee]
+(https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
+
+#### Memory
+
+If not specified in your circuitry configuration, the memory store will be used
+by default.  This lock strategy should be avoided if running multiple subscriber
+processes.
+
+```ruby
+Circuitry::Memory::Lock.new
+```
+
+#### Redis
+
+```ruby
+# pass in redis client
+client = Redis.new(url: 'redis://localhost:6379')
+Circuitry::Memory::Redis.new(client: client)
+
+# pass in redis options
+Circuitry::Memory::Redis.new(url: 'redis://localhost:6379')
+```
+
+#### Memcache
+
+```ruby
+# pass in dalli client
+client = Dalli::Client.new('localhost:11211', namespace: '...')
+Circuitry::Memory::Memcache.new(client: client)
+
+# pass in dalli options
+Circuitry::Memory::Memcache.new(host: 'localhost:11211', namespace: '...')
+```
 
 ## Development
 

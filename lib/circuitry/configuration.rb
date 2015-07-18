@@ -10,8 +10,17 @@ module Circuitry
     attribute :region, String, default: 'us-east-1'
     attribute :logger, Logger, default: Logger.new(STDERR)
     attribute :error_handler
+    attribute :lock_strategy, Object, default: ->(page, attribute) { Circuitry::Locks::Memory.new }
     attribute :publish_async_strategy, Symbol, default: ->(page, attribute) { :fork }
     attribute :subscribe_async_strategy, Symbol, default: ->(page, attribute) { :fork }
+
+    def lock_strategy=(value)
+      unless value.is_a?(Circuitry::Locks::Base)
+        raise ArgumentErrot, "invalid value `#{value}`, must be instance of `#{Circuitry::Locks::Base}`"
+      end
+
+      super
+    end
 
     def publish_async_strategy=(value)
       validate(value, Publisher.async_strategies)
