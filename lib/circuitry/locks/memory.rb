@@ -11,7 +11,7 @@ module Circuitry
 
       def reap
         now = Time.now
-        store.delete_if { |key, expires_at| expires_at < now }
+        store.delete_if { |key, expires_at| expires_at <= now }
       end
 
       protected

@@ -18,7 +18,7 @@ RSpec.shared_examples_for 'a lock' do
 
       subject.soft_lock(id)
 
-      allow(Time).to receive(:now).and_return(now + soft_ttl)
+      allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
       expect(subject).to be_locked(id)
     end
 
@@ -28,7 +28,7 @@ RSpec.shared_examples_for 'a lock' do
 
       subject.soft_lock(id)
 
-      allow(Time).to receive(:now).and_return(now + soft_ttl + 1)
+      allow(Time).to receive(:now).and_return(now + soft_ttl)
       expect(subject).to_not be_locked(id)
     end
   end
@@ -46,7 +46,7 @@ RSpec.shared_examples_for 'a lock' do
 
       subject.hard_lock(id)
 
-      allow(Time).to receive(:now).and_return(now + hard_ttl)
+      allow(Time).to receive(:now).and_return(now + hard_ttl - 1)
       expect(subject).to be_locked(id)
     end
 
@@ -56,7 +56,7 @@ RSpec.shared_examples_for 'a lock' do
 
       subject.hard_lock(id)
 
-      allow(Time).to receive(:now).and_return(now + hard_ttl + 1)
+      allow(Time).to receive(:now).and_return(now + hard_ttl)
       expect(subject).to_not be_locked(id)
     end
   end
@@ -88,7 +88,7 @@ RSpec.shared_examples_for 'a lock' do
       subject.soft_lock(id)
 
       expect {
-        allow(Time).to receive(:now).and_return(now + soft_ttl + 1)
+        allow(Time).to receive(:now).and_return(now + soft_ttl)
         subject.reap
       }.to change { subject.locked?(id) }.from(true).to(false)
     end
@@ -100,7 +100,7 @@ RSpec.shared_examples_for 'a lock' do
       subject.soft_lock(id)
 
       expect {
-        allow(Time).to receive(:now).and_return(now + soft_ttl)
+        allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
         subject.reap
       }.to_not change { subject.locked?(id) }.from(true)
     end

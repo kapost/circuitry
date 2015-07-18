@@ -21,7 +21,7 @@ module Circuitry
 
       def locked?(id)
         expires = expires_at(lock_key(id))
-        !expires.nil? && expires >= Time.now
+        !expires.nil? && expires > Time.now
       end
 
       def reap
