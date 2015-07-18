@@ -36,6 +36,7 @@ Circuitry.config do |c|
     HoneyBadger.notify(error)
     HoneyBadger.flush
   end
+  c.lock_strategy = Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
   c.publish_async_strategy = :batch
   c.subscribe_async_strategy = :thread
 end
@@ -54,6 +55,9 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
+* `:lock_strategy` - The store used to ensure that no duplicate messages are
+  processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
+  more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
 * `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
   determines how asynchronous publish requests are processed.  *(optional,
   default: `:fork`)*
@@ -257,24 +261,47 @@ Circuitry::Lock::Memory.new
 
 #### Redis
 
+Using the redis lock strategy requires that you add `gem 'redis'` to your
+`Gemfile`, as it is not included bundled with the circuitry gem by default.
+
+There are two ways to use the redis lock strategy.  The first is to pass your
+redis connection options to the lock in the same way that you would when building
+a new `Redis` object.
+
 ```ruby
-# pass in redis client
+Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
+```
+
+The second way is to pass in a `:client` option that specifies the redis client
+itself.  This is useful for more advanced usage such as sharing an existing redis
+connection, utilizing [Redis::Namespace](https://github.com/resque/redis-namespace),
+or utilizing [hiredis](https://github.com/redis/hiredis-rb).
+
+```ruby
 client = Redis.new(url: 'redis://localhost:6379')
 Circuitry::Lock::Redis.new(client: client)
-
-# pass in redis options
-Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
 ```
 
 #### Memcache
 
+Using the memcache lock strategy requires that you add `gem 'dalli'` to your
+`Gemfile`, as it is not included bundled with the circuitry gem by default.
+
+There are two ways to use the memcache lock strategy.  The first is to pass your
+dalli connection options to the lock in the same way that you would when building
+a new `Dalli::Client` object.  The special `host` option will be treated as the
+memcache host, just as the first argument to `Dalli::Client`.
+
 ```ruby
-# pass in dalli client
+Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
+```
+
+The second way is to pass in a `:client` option that specifies the dalli client
+itself.  This is useful for sharing an existing memcache connection.
+
+```ruby
 client = Dalli::Client.new('localhost:11211', namespace: '...')
 Circuitry::Lock::Memcache.new(client: client)
-
-# pass in dalli options
-Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
 ```
 
 #### Custom
