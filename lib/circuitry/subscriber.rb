@@ -65,7 +65,15 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :lock_strategy
+    attr_writer :queue, :timeout, :wait_time, :batch_size
+
+    def lock_strategy=(value)
+      unless value.is_a?(Circuitry::Locks::Base)
+        raise ArgumentErrot, "invalid value `#{value}`, must be instance of `#{Circuitry::Locks::Base}`"
+      end
+
+      @lock_strategy = value
+    end
 
     private
 
