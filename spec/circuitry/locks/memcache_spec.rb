@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'securerandom'
 
 RSpec.describe Circuitry::Locks::Memcache, type: :model do
   subject { described_class.new(soft_ttl: soft_ttl, hard_ttl: hard_ttl, client: client) }
