@@ -12,17 +12,6 @@ require 'pry'
 require 'pry-nav'
 require 'securerandom'
 
-class MemcacheMock
-  def add(key, value, ttl = nil, options = {})
-    if @values.has_key?(key)
-      false
-    else
-      set(key, value, ttl, options)
-      true
-    end
-  end
-end
-
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This means that files in spec/support that end

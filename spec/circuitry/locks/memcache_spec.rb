@@ -12,8 +12,7 @@ RSpec.describe Circuitry::Locks::Memcache, type: :model do
     client.flush
   end
 
-  # TODO: the `memcache_mock` gem does not support `tll` or the `add` method
-  # it_behaves_like 'a lock'
+  it_behaves_like 'a lock'
 
   describe '.new' do
     subject { described_class }
