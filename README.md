@@ -319,8 +319,17 @@ Circuitry::Lock::Memcache.new(client: client)
 
 It's also possible to roll your own lock strategy.  Simply create a class that
 includes (or module that extends) `Circuitry::Lock::Base` and implements the
-`lock`, `expires_at`, and `reap` methods.  For example, a database-backed
-solution might look something like the following:
+following methods:
+
+* `lock`: Accepts the `key` and `ttl` as parameters.  If the key is already
+  locked, this method must return false.  If the key is not already locked, it
+  must lock the key for `ttl` seconds and return true.  It is important that
+  the check and update are **atomic** in order to ensure the same message isn't
+  processed more than once.
+* `lock!`: Accepts the `key` and `ttl` as parameters.  Must lock the key for
+  `ttl` seconds regardless of whether or not the key was previously locked.
+
+For example, a database-backed solution might look something like the following:
 
 ```ruby
 class DatabaseLockStrategy
@@ -331,25 +340,14 @@ class DatabaseLockStrategy
     self.connection = options.fetch(:connection)
   end
 
-  # Should perform an operation that will effectively release all expired keys.
-  def reap
-    connection.exec("DELETE FROM locks WHERE expires_at < '#{Time.now}'")
-  end
-
   protected
 
-  # Accepts a key identifying the SQS message and the time TTL before the key
-  # should expire.  Should perform an operation that will effectively lock the
-  # key.
   def lock(key, ttl)
     connection.exec("INSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
   end
 
-  # Accepts a key identifying the SQS message.  Must returns `nil` if the key
-  # does not exist or a `Time` object representing its expiration.
-  def expires_at(key)
-    results = connection.exec("SELECT (expires_at) FROM locks WHERE key = '#{key}'")
-    results.num_tuples > 0 && results[0]['expires_at']
+  def lock!(key, ttl)
+    connection.exec("UPSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
   end
 
   private

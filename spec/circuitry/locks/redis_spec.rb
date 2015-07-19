@@ -7,6 +7,10 @@ RSpec.describe Circuitry::Locks::Redis, type: :model do
   let(:hard_ttl) { 60 }
   let(:client) { MockRedis.new }
 
+  before do
+    client.flushdb
+  end
+
   it_behaves_like 'a lock'
 
   describe '.new' do

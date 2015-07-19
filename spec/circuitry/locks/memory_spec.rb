@@ -7,5 +7,9 @@ RSpec.describe Circuitry::Locks::Memory, type: :model do
   let(:soft_ttl) { 30 }
   let(:hard_ttl) { 60 }
 
+  before do
+    described_class.store.clear
+  end
+
   it_behaves_like 'a lock'
 end

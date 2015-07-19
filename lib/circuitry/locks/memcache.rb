@@ -12,19 +12,14 @@ module Circuitry
         end
       end
 
-      def reap
-        # noop
-      end
-
       protected
 
       def lock(key, ttl)
-        client.set(key, (Time.now + ttl).to_i, ttl)
+        client.add(key, (Time.now + ttl).to_i, ttl)
       end
 
-      def expires_at(key)
-        expires_at = client.get(key)
-        expires_at && Time.at(expires_at)
+      def lock!(key, ttl)
+        client.set(key, (Time.now + ttl).to_i, ttl)
       end
 
       private

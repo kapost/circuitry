@@ -9,6 +9,10 @@ RSpec.describe Circuitry::Subscriber, type: :model do
   it { is_expected.to be_a Circuitry::Concerns::Async }
 
   describe '#subscribe' do
+    before do
+      Circuitry::Locks::Memory.store.clear
+    end
+
     describe 'when queue is not set' do
       let(:queue) { nil }
       let(:block) { ->{ } }
@@ -80,6 +84,24 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             subject.subscribe(&block)
             expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one')
             expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-two')
+          end
+
+          describe 'when a duplicate message is received' do
+            let(:messages) do
+              2.times.map do
+                { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json }
+              end
+            end
+
+            it 'does not process the duplicate' do
+              expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
+              subject.subscribe(&block)
+            end
+
+            it 'deletes each message' do
+              subject.subscribe(&block)
+              expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+            end
           end
 
           describe 'when processing fails' do

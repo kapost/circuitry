@@ -16,16 +16,7 @@ module Circuitry
       end
 
       def hard_lock(id)
-        lock(lock_key(id), hard_ttl)
-      end
-
-      def locked?(id)
-        expires = expires_at(lock_key(id))
-        !expires.nil? && expires > Time.now
-      end
-
-      def reap
-        raise NotImplementedError
+        lock!(lock_key(id), hard_ttl)
       end
 
       protected
@@ -34,7 +25,7 @@ module Circuitry
         raise NotImplementedError
       end
 
-      def expires_at(key)
+      def lock!(key, ttl)
         raise NotImplementedError
       end
 

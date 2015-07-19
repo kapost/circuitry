@@ -7,27 +7,52 @@ module Circuitry
         def store
           @store ||= {}
         end
-      end
 
-      def reap
-        now = Time.now
-        store.delete_if { |key, expires_at| expires_at <= now }
+        def semaphore
+          @semaphore ||= Mutex.new
+        end
       end
 
       protected
 
       def lock(key, ttl)
-        store[key] = Time.now + ttl
+        reap
+
+        store do |store|
+          if store.has_key?(key)
+            false
+          else
+            store[key] = Time.now + ttl
+            true
+          end
+        end
       end
 
-      def expires_at(key)
-        store[key]
+      def lock!(key, ttl)
+        reap
+
+        store do |store|
+          store[key] = Time.now + ttl
+        end
       end
 
       private
 
-      def store
-        self.class.store
+      def store(&block)
+        semaphore.synchronize do
+          block.call(self.class.store)
+        end
+      end
+
+      def reap
+        store do |store|
+          now = Time.now
+          store.delete_if { |key, expires_at| expires_at <= now }
+        end
+      end
+
+      def semaphore
+        self.class.semaphore
       end
     end
   end

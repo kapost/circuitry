@@ -1,108 +1,76 @@
 RSpec.shared_examples_for 'a lock' do
   it { is_expected.to be_a Circuitry::Locks::Base }
 
-  before do
-    subject.reap
-  end
-
   describe '#soft_lock' do
     let(:id) { SecureRandom.hex(100) }
+    let(:now) { Time.now }
 
-    it 'locks the message id' do
-      expect { subject.soft_lock(id) }.to change { subject.locked?(id) }.from(false).to(true)
+    before do
+      allow(Time).to receive(:now).and_return(now)
     end
 
-    it 'locks the message id for the soft ttl duration' do
-      now = Time.now
-      allow(Time).to receive(:now).and_return(now)
+    describe 'when the id is not locked' do
+      it 'returns true' do
+        expect(subject.soft_lock(id)).to be true
+      end
 
-      subject.soft_lock(id)
+      it 'locks the message id for the soft ttl duration' do
+        subject.soft_lock(id)
+        allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
+        expect(subject.soft_lock(id)).to be false
+      end
 
-      allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
-      expect(subject).to be_locked(id)
+      it 'unlocks the message id after the soft ttl duration' do
+        subject.soft_lock(id)
+        allow(Time).to receive(:now).and_return(now + soft_ttl)
+        expect(subject.soft_lock(id)).to be true
+      end
     end
 
-    it 'unlocks the message id after the soft ttl duration' do
-      now = Time.now
-      allow(Time).to receive(:now).and_return(now)
+    describe 'when the id is locked' do
+      before do
+        subject.soft_lock(id)
+      end
 
-      subject.soft_lock(id)
+      it 'returns false' do
+        expect(subject.soft_lock(id)).to be false
+      end
 
-      allow(Time).to receive(:now).and_return(now + soft_ttl)
-      expect(subject).to_not be_locked(id)
+      it 'does not change the existing lock' do
+        allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
+        expect(subject.soft_lock(id)).to be false
+        allow(Time).to receive(:now).and_return(now + soft_ttl)
+        expect(subject.soft_lock(id)).to be true
+      end
     end
   end
 
   describe '#hard_lock' do
     let(:id) { SecureRandom.hex(100) }
+    let(:now) { Time.now }
 
-    it 'locks the message id' do
-      expect { subject.hard_lock(id) }.to change { subject.locked?(id) }.from(false).to(true)
-    end
-
-    it 'locks the message id for the hard ttl duration' do
-      now = Time.now
+    before do
       allow(Time).to receive(:now).and_return(now)
-
-      subject.hard_lock(id)
-
-      allow(Time).to receive(:now).and_return(now + hard_ttl - 1)
-      expect(subject).to be_locked(id)
     end
 
-    it 'unlocks the message id after the hard ttl duration' do
-      now = Time.now
-      allow(Time).to receive(:now).and_return(now)
+    shared_examples_for 'an overwriting lock' do
+      it 'locks the message id for the hard ttl duration' do
+        subject.hard_lock(id)
+        allow(Time).to receive(:now).and_return(now + hard_ttl - 1)
 
-      subject.hard_lock(id)
-
-      allow(Time).to receive(:now).and_return(now + hard_ttl)
-      expect(subject).to_not be_locked(id)
-    end
-  end
-
-  describe '#locked?' do
-    let(:id) { SecureRandom.hex(100) }
-
-    describe 'when the id is locked' do
-      it 'returns true' do
-        subject.soft_lock(id)
-        expect(subject).to be_locked(id)
+        expect {
+          allow(Time).to receive(:now).and_return(now + hard_ttl)
+        }.to change { subject.soft_lock(id) }.from(false).to(true)
       end
     end
 
     describe 'when the id is not locked' do
-      it 'returns false' do
-        expect(subject).to_not be_locked(id)
-      end
-    end
-  end
-
-  describe '#reap' do
-    let(:id) { SecureRandom.hex(100) }
-
-    it 'deletes expired locks' do
-      now = Time.now
-      allow(Time).to receive(:now).and_return(now)
-
-      subject.soft_lock(id)
-
-      expect {
-        allow(Time).to receive(:now).and_return(now + soft_ttl)
-        subject.reap
-      }.to change { subject.locked?(id) }.from(true).to(false)
+      it_behaves_like 'an overwriting lock'
     end
 
-    it 'does not delete unexpired locks' do
-      now = Time.now
-      allow(Time).to receive(:now).and_return(now)
-
-      subject.soft_lock(id)
-
-      expect {
-        allow(Time).to receive(:now).and_return(now + soft_ttl - 1)
-        subject.reap
-      }.to_not change { subject.locked?(id) }.from(true)
+    describe 'when the id is locked' do
+      before { subject.soft_lock(id) }
+      it_behaves_like 'an overwriting lock'
     end
   end
 end

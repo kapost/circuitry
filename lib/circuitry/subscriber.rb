@@ -48,7 +48,6 @@ module Circuitry
       loop do
         begin
           receive_messages(&block)
-          lock_strategy.reap
         rescue *CONNECTION_ERRORS => e
           logger.error("Connection error to #{queue}: #{e}")
           raise SubscribeError.new(e)
@@ -75,21 +74,9 @@ module Circuitry
       messages = response.body['Message']
       return if messages.empty?
 
-      messages.map! do |message|
-        Message.new(message)
-      end
-
-      messages.each do |message|
-        lock_strategy.soft_lock(message)
-      end
-
       messages.each do |message|
         process = -> do
-          if lock_strategy.locked?(message.id)
-            logger.info("Ignoring duplicate message #{message.id}")
-          else
-            process_message(message, &block)
-          end
+          process_message(message, &block)
         end
 
         if async?
@@ -101,11 +88,12 @@ module Circuitry
     end
 
     def process_message(message, &block)
+      message = Message.new(message)
+
       Timeout.timeout(timeout) do
         logger.info("Processing message #{message.id}")
         handle_message(message, &block)
         delete_message(message)
-        lock_strategy.hard_lock(message)
       end
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")
@@ -113,10 +101,18 @@ module Circuitry
     end
 
     def handle_message(message, &block)
-      block.call(message.body, message.topic.name)
-    rescue => e
-      logger.error("Error handling message #{message.id}: #{e}")
-      raise e
+      if lock_strategy.soft_lock(message.id)
+        begin
+          block.call(message.body, message.topic.name)
+        rescue => e
+          logger.error("Error handling message #{message.id}: #{e}")
+          raise e
+        end
+
+        lock_strategy.hard_lock(message.id)
+      else
+        logger.info("Ignoring duplicate message #{message.id}")
+      end
     end
 
     def delete_message(message)
