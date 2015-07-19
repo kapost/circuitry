@@ -1,6 +1,6 @@
 module Circuitry
   module Processor
-    def process
+    def process(&block)
       raise NotImplementedError, "#{self} must implement class method `process`"
     end
 

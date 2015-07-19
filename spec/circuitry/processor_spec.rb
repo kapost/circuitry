@@ -12,8 +12,30 @@ processor_class = Class.new do
   end
 end
 
+incomplete_processor_class = Class.new do
+  include Circuitry::Processor
+end
+
 RSpec.describe Circuitry::Processor, type: :model do
   subject { processor_class.new }
+
+  describe '.process' do
+    let(:block) { ->{ } }
+
+    describe 'when the class has defined process' do
+      it 'raises an error' do
+        expect { subject.process(&block) }.to_not raise_error
+      end
+    end
+
+    describe 'when the class has not defined process' do
+      subject { incomplete_processor_class.new }
+
+      it 'raises an error' do
+        expect { subject.process(&block) }.to raise_error(NotImplementedError)
+      end
+    end
+  end
 
   describe '.safely_process' do
     def process
@@ -71,6 +93,22 @@ RSpec.describe Circuitry::Processor, type: :model do
       it 'does not handle an error' do
         expect(Circuitry.config.error_handler).to_not receive(:call)
         process
+      end
+    end
+  end
+
+  describe '#flush' do
+    describe 'when the class has defined flush' do
+      it 'does not raise an error' do
+        expect { subject.flush }.to_not raise_error
+      end
+    end
+
+    describe 'when the class has not defined flush' do
+      subject { incomplete_processor_class.new }
+
+      it 'raises an error' do
+        expect { subject.flush }.to raise_error(NotImplementedError)
       end
     end
   end
