@@ -91,7 +91,9 @@ The `publish` method also accepts options that impact instantiation of the
   the [Asynchronous Support](#asynchronous-support) section for more details
   regarding this option.  *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that publishing a message
-  will be attempted before giving up.  *(default: 15)*
+  will be attempted before giving up.  If the timeout is exceeded, an exception
+  will raised to be handled by your application or `error_handler`. *(default:
+  15)*
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
@@ -130,7 +132,9 @@ The `subscribe` method also accepts options that impact instantiation of the
   Please refer to the [Asynchronous Support](#asynchronous-support) section for
   more details regarding this option.  *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that processing a message
-  will be attempted before giving up.  *(default: 15)*
+  will be attempted before giving up.  If the timeout is exceeded, an exception
+  will raised to be handled by your application or `error_handler`.  *(default:
+  15)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS.  Anything above 0 results in long-polling, while 0 results in
   short-polling.  *(default: 10)*
