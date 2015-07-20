@@ -19,8 +19,6 @@ end
 RSpec.describe Circuitry::Concerns::Async, type: :model do
   subject { async_class.new }
 
-  describe ''
-
   describe '#async=' do
     describe 'with an invalid symbol' do
       it 'raises an error' do
