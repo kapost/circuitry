@@ -101,11 +101,9 @@ module Circuitry
     def process_message(message, &block)
       message = Message.new(message)
 
-      Timeout.timeout(timeout) do
-        logger.info("Processing message #{message.id}")
-        handle_message(message, &block)
-        delete_message(message)
-      end
+      logger.info("Processing message #{message.id}")
+      handle_message(message, &block)
+      delete_message(message)
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
@@ -114,7 +112,9 @@ module Circuitry
     def handle_message(message, &block)
       if lock.soft_lock(message.id)
         begin
-          block.call(message.body, message.topic.name)
+          Timeout.timeout(timeout) do
+            block.call(message.body, message.topic.name)
+          end
         rescue => e
           logger.error("Error handling message #{message.id}: #{e}")
           raise e
