@@ -10,9 +10,10 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock
 
     DEFAULT_OPTIONS = {
+        lock: true,
         async: false,
         timeout: 15,
         wait_time: 10,
@@ -29,6 +30,7 @@ module Circuitry
       options = DEFAULT_OPTIONS.merge(options)
 
       self.queue = queue
+      self.lock = options[:lock]
       self.async = options[:async]
       self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
@@ -65,6 +67,17 @@ module Circuitry
 
     attr_writer :queue, :timeout, :wait_time, :batch_size
 
+    def lock=(value)
+      value = case value
+        when true then Circuitry.config.lock_strategy
+        when false then Circuitry::Locks::NOOP.new
+        when Circuitry::Locks::Base then value
+        else raise ArgumentError, "Invalid value `#{value}`, must be one of `true`, `false`, or instance of `#{Circuitry::Locks::Base}`"
+      end
+
+      @lock = value
+    end
+
     private
 
     def receive_messages(&block)
@@ -86,14 +99,12 @@ module Circuitry
     end
 
     def process_message(message, &block)
-      Timeout.timeout(timeout) do
-        message = Message.new(message)
+      message = Message.new(message)
 
-        unless message.nil?
-          logger.info("Processing message #{message.id}")
-          handle_message(message, &block)
-          delete_message(message)
-        end
+      Timeout.timeout(timeout) do
+        logger.info("Processing message #{message.id}")
+        handle_message(message, &block)
+        delete_message(message)
       end
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")
@@ -101,10 +112,18 @@ module Circuitry
     end
 
     def handle_message(message, &block)
-      block.call(message.body, message.topic.name)
-    rescue => e
-      logger.error("Error handling message #{message.id}: #{e}")
-      raise e
+      if lock.soft_lock(message.id)
+        begin
+          block.call(message.body, message.topic.name)
+        rescue => e
+          logger.error("Error handling message #{message.id}: #{e}")
+          raise e
+        end
+
+        lock.hard_lock(message.id)
+      else
+        logger.info("Ignoring duplicate message #{message.id}")
+      end
     end
 
     def delete_message(message)

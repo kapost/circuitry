@@ -36,6 +36,7 @@ Circuitry.config do |c|
     HoneyBadger.notify(error)
     HoneyBadger.flush
   end
+  c.lock_strategy = Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
   c.publish_async_strategy = :batch
   c.subscribe_async_strategy = :thread
 end
@@ -54,6 +55,9 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
+* `:lock_strategy` - The store used to ensure that no duplicate messages are
+  processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
+  more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
 * `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
   determines how asynchronous publish requests are processed.  *(optional,
   default: `:fork`)*
@@ -124,13 +128,18 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently includes the following options.
 
+* `:lock` - The strategy used to ensure that no duplicate messages are processed.
+  Accepts `true`, `false`, or an instance of a class inheriting from
+  `Circuitry::Locks::Base`.  Passing `true` uses the `lock_strategy` value from
+  the gem configuration.  Passing `false` uses the [NOOP](#NOOP) strategy. Please
+  refer to the [Lock Strategies](#lock-strategies) section for more details
+  regarding this option.  *(default: `true`)*
 * `:async` - Whether or not subscribing should occur in the background.  Accepts
   one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
   `subscribe_async_strategy` value from the gem configuration.  Passing an
-  asynchronous value will cause messages to be handled concurrently, meaning
-  that queued messages *might not be processed in the order they're received*.
-  Please refer to the [Asynchronous Support](#asynchronous-support) section for
-  more details regarding this option.  *(default: `false`)*
+  asynchronous value will cause messages to be handled concurrently.  Please
+  refer to the [Asynchronous Support](#asynchronous-support) section for more
+  details regarding this option.  *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that processing a message
   will be attempted before giving up.  If the timeout is exceeded, an exception
   will raised to be handled by your application or `error_handler`.  *(default:
@@ -142,7 +151,15 @@ The `subscribe` method also accepts options that impact instantiation of the
   *(default: 10)*
 
 ```ruby
-Circuitry.subscribe('https://...', async: true, timeout: 20, wait_time: 60, batch_size: 20) do |message, topic_name|
+options = {
+  lock: true,
+  async: true,
+  timeout: 20,
+  wait_time: 60,
+  batch_size: 20
+}
+
+Circuitry.subscribe('https://...', options) do |message, topic_name|
   # ...
 end
 ```
@@ -211,6 +228,152 @@ application exits.  This can be done by calling `Circuitry.flush`.
 Batched publish and subscribe requests are queued in memory and do not begin
 processing until you explicit flush them.  This can be done by calling
 `Circuitry.flush`.
+
+### Lock Strategies
+
+The [Amazon SQS FAQ](http://aws.amazon.com/sqs/faqs/) includes the following
+important point:
+
+> Amazon SQS is engineered to provide “at least once” delivery of all messages in
+> its queues. Although most of the time each message will be delivered to your
+> application exactly once, you should design your system so that processing a
+> message more than once does not create any errors or inconsistencies.
+
+Given this, it's up to the user to ensure messages are not processed multiple
+times in the off chance that Amazon does not recognize that a message has been
+processed.
+
+The circuitry gem handles this by caching SQS message IDs: first via a "soft
+lock" that denotes the message is about to be processed, then via a "hard lock"
+that denotes the message has finished processing.
+
+The soft lock has a default TTL of 15 minutes (a seemingly sane amount of time
+during which processing most queue messages should certainly be able to
+complete), while the hard lock has a default TTL of 24 hours (based upon
+[a suggestion by an AWS employee](https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
+The soft and hard TTL values can be changed by passing a `:soft_ttl` or
+`:hard_ttl` value to the lock initializer, representing the number of seconds
+that a lock should persist.  For example:
+
+```ruby
+Circuitry.config.lock_strategy = Circuitry::Lock::Memory.new(
+    soft_ttl: 10 * 60,      # 10 minutes
+    hard_ttl: 48 * 60 * 60  # 48 hours
+)
+```
+
+#### Memory
+
+If not specified in your circuitry configuration, the memory store will be used
+by default.  This lock strategy is provided as the lowest barrier to entry given
+that it has no third-party dependencies.  It should be avoided if running
+multiple subscriber processes or if expecting a high throughput that would result
+in a large amount of memory consumption.
+
+```ruby
+Circuitry::Lock::Memory.new
+```
+
+#### Redis
+
+Using the redis lock strategy requires that you add `gem 'redis'` to your
+`Gemfile`, as it is not included bundled with the circuitry gem by default.
+
+There are two ways to use the redis lock strategy.  The first is to pass your
+redis connection options to the lock in the same way that you would when building
+a new `Redis` object.
+
+```ruby
+Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
+```
+
+The second way is to pass in a `:client` option that specifies the redis client
+itself.  This is useful for more advanced usage such as sharing an existing redis
+connection, utilizing [Redis::Namespace](https://github.com/resque/redis-namespace),
+or utilizing [hiredis](https://github.com/redis/hiredis-rb).
+
+```ruby
+client = Redis.new(url: 'redis://localhost:6379')
+Circuitry::Lock::Redis.new(client: client)
+```
+
+#### Memcache
+
+Using the memcache lock strategy requires that you add `gem 'dalli'` to your
+`Gemfile`, as it is not included bundled with the circuitry gem by default.
+
+There are two ways to use the memcache lock strategy.  The first is to pass your
+dalli connection host and options to the lock in the same way that you would when
+building a new `Dalli::Client` object.  The special `host` option will be treated
+as the memcache host, just as the first argument to `Dalli::Client`.
+
+```ruby
+Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
+```
+
+The second way is to pass in a `:client` option that specifies the dalli client
+itself.  This is useful for sharing an existing memcache connection.
+
+```ruby
+client = Dalli::Client.new('localhost:11211', namespace: '...')
+Circuitry::Lock::Memcache.new(client: client)
+```
+
+#### NOOP
+
+Using the noop lock strategy permits you to continue to treat SQS as a
+distributed queue in a true sense, meaning that you might receive duplicate
+messages.  Please refer to the Amazon SQS documentation pertaining to the
+[Properties of Distributed Queues](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/DistributedQueues.html).
+
+#### Custom
+
+It's also possible to roll your own lock strategy.  Simply create a class that
+includes (or module that extends) `Circuitry::Lock::Base` and implements the
+following methods:
+
+* `lock`: Accepts the `key` and `ttl` as parameters.  If the key is already
+  locked, this method must return false.  If the key is not already locked, it
+  must lock the key for `ttl` seconds and return true.  It is important that
+  the check and update are **atomic** in order to ensure the same message isn't
+  processed more than once.
+* `lock!`: Accepts the `key` and `ttl` as parameters.  Must lock the key for
+  `ttl` seconds regardless of whether or not the key was previously locked.
+
+For example, a database-backed solution might look something like the following:
+
+```ruby
+class DatabaseLockStrategy
+  include Circuitry::Lock::Base
+
+  def initialize(options = {})
+    super(options)
+    self.connection = options.fetch(:connection)
+  end
+
+  protected
+
+  def lock(key, ttl)
+    connection.exec("INSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
+  end
+
+  def lock!(key, ttl)
+    connection.exec("UPSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
+  end
+
+  private
+
+  attr_reader :connection
+end
+```
+
+To use, simply create an instance of the class with your necessary options, and
+pass your lock instance to the configuration as the `:lock_strategy`.
+
+```ruby
+connection = PG.connect(...)
+Circuitry.config.lock_strategy = DatabaseLockStrategy.new(connection: connection)
+```
 
 ## Development
 

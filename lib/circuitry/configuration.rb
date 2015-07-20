@@ -10,6 +10,7 @@ module Circuitry
     attribute :region, String, default: 'us-east-1'
     attribute :logger, Logger, default: Logger.new(STDERR)
     attribute :error_handler
+    attribute :lock_strategy, Object, default: ->(page, attribute) { Circuitry::Locks::Memory.new }
     attribute :publish_async_strategy, Symbol, default: ->(page, attribute) { :fork }
     attribute :subscribe_async_strategy, Symbol, default: ->(page, attribute) { :fork }
 

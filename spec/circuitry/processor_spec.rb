@@ -45,13 +45,17 @@ RSpec.describe Circuitry::Processor, type: :model do
     describe 'when the block raises an error' do
       let(:block) { ->{ raise StandardError } }
 
+      before do
+        allow(Circuitry.config.logger).to receive(:error)
+      end
+
       it 'does not re-raise the error' do
         expect { process }.to_not raise_error
       end
 
       it 'logs an error' do
-        expect(Circuitry.config.logger).to receive(:error)
         process
+        expect(Circuitry.config.logger).to have_received(:error)
       end
 
       describe 'when an error handler is defined' do
@@ -71,6 +75,7 @@ RSpec.describe Circuitry::Processor, type: :model do
         let(:error_handler) { nil }
 
         before do
+          allow_message_expectations_on_nil
           allow(Circuitry.config).to receive(:error_handler).and_return(error_handler)
           allow(error_handler).to receive(:call)
         end
@@ -91,6 +96,7 @@ RSpec.describe Circuitry::Processor, type: :model do
       end
 
       it 'does not handle an error' do
+        allow_message_expectations_on_nil
         expect(Circuitry.config.error_handler).to_not receive(:call)
         process
       end
