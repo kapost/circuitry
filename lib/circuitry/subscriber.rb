@@ -10,7 +10,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock_strategy
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock
 
     DEFAULT_OPTIONS = {
         lock: true,
@@ -30,11 +30,11 @@ module Circuitry
       options = DEFAULT_OPTIONS.merge(options)
 
       self.queue = queue
+      self.lock = options[:lock]
       self.async = options[:async]
       self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
       self.batch_size = options[:batch_size]
-      self.lock_strategy = options[:lock]
     end
 
     def subscribe(&block)
@@ -67,7 +67,7 @@ module Circuitry
 
     attr_writer :queue, :timeout, :wait_time, :batch_size
 
-    def lock_strategy=(value)
+    def lock=(value)
       value = case value
         when true then Circuitry.config.lock_strategy
         when false then Circuitry::Locks::NOOP.new
@@ -75,7 +75,7 @@ module Circuitry
         else raise ArgumentError, "Invalid value `#{value}`, must be one of `true`, `false`, or instance of `#{Circuitry::Locks::Base}`"
       end
 
-      @lock_strategy = value
+      @lock = value
     end
 
     private
@@ -112,7 +112,7 @@ module Circuitry
     end
 
     def handle_message(message, &block)
-      if lock_strategy.soft_lock(message.id)
+      if lock.soft_lock(message.id)
         begin
           block.call(message.body, message.topic.name)
         rescue => e
@@ -120,7 +120,7 @@ module Circuitry
           raise e
         end
 
-        lock_strategy.hard_lock(message.id)
+        lock.hard_lock(message.id)
       else
         logger.info("Ignoring duplicate message #{message.id}")
       end
