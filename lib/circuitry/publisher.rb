@@ -1,4 +1,5 @@
 require 'json'
+require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sns'
 require 'circuitry/topic_creator'
@@ -12,12 +13,16 @@ module Circuitry
 
     DEFAULT_OPTIONS = {
         async: false,
+        timeout: 15,
     }.freeze
+
+    attr_reader :timeout
 
     def initialize(options = {})
       options = DEFAULT_OPTIONS.merge(options)
 
       self.async = options[:async]
+      self.timeout = options[:timeout]
     end
 
     def publish(topic_name, object)
@@ -30,8 +35,10 @@ module Circuitry
       end
 
       process = -> do
-        topic = TopicCreator.find_or_create(topic_name)
-        sns.publish(topic.arn, object.to_json)
+        Timeout.timeout(timeout) do
+          topic = TopicCreator.find_or_create(topic_name)
+          sns.publish(topic.arn, object.to_json)
+        end
       end
 
       if async?
@@ -44,6 +51,10 @@ module Circuitry
     def self.default_async_strategy
       Circuitry.config.publish_async_strategy
     end
+
+    protected
+
+    attr_writer :timeout
 
     private
 
