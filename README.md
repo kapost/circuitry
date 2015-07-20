@@ -131,10 +131,9 @@ The `subscribe` method also accepts options that impact instantiation of the
 * `:async` - Whether or not subscribing should occur in the background.  Accepts
   one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
   `subscribe_async_strategy` value from the gem configuration.  Passing an
-  asynchronous value will cause messages to be handled concurrently, meaning
-  that queued messages *might not be processed in the order they're received*.
-  Please refer to the [Asynchronous Support](#asynchronous-support) section for
-  more details regarding this option.  *(default: `false`)*
+  asynchronous value will cause messages to be handled concurrently.  Please
+  refer to the [Asynchronous Support](#asynchronous-support) section for more
+  details regarding this option.  *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that processing a message
   will be attempted before giving up.  If the timeout is exceeded, an exception
   will raised to be handled by your application or `error_handler`.  *(default:
@@ -299,9 +298,9 @@ Using the memcache lock strategy requires that you add `gem 'dalli'` to your
 `Gemfile`, as it is not included bundled with the circuitry gem by default.
 
 There are two ways to use the memcache lock strategy.  The first is to pass your
-dalli connection options to the lock in the same way that you would when building
-a new `Dalli::Client` object.  The special `host` option will be treated as the
-memcache host, just as the first argument to `Dalli::Client`.
+dalli connection host and options to the lock in the same way that you would when
+building a new `Dalli::Client` object.  The special `host` option will be treated
+as the memcache host, just as the first argument to `Dalli::Client`.
 
 ```ruby
 Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
