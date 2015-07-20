@@ -8,30 +8,78 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
   it { is_expected.to be_a Circuitry::Concerns::Async }
 
+  describe '.new' do
+    subject { described_class }
+
+    describe 'when queue is set' do
+      let(:queue) { 'https://sqs.amazon.com/account/queue' }
+
+      it 'does not raise an error' do
+        expect { subject.new(queue) }.to_not raise_error
+      end
+    end
+
+    describe 'when queue is not set' do
+      let(:queue) { nil }
+
+      it 'raises an error' do
+        expect { subject.new(queue) }.to raise_error(ArgumentError)
+      end
+    end
+
+    describe 'when lock' do
+      subject { described_class }
+
+      let(:options) { { lock: lock } }
+
+      shared_examples_for 'a valid lock strategy' do |lock_class|
+        it 'does not raise an error' do
+          expect { subject.new(queue, options) }.to_not raise_error
+        end
+
+        it 'sets the lock strategy' do
+          subscriber = subject.new(queue, options)
+          expect(subscriber.lock).to be_a lock_class
+        end
+      end
+
+      describe 'is true' do
+        let(:lock) { true }
+        it_behaves_like 'a valid lock strategy', Circuitry::Locks::Memory
+      end
+
+      describe 'is false' do
+        let(:lock) { false }
+        it_behaves_like 'a valid lock strategy', Circuitry::Locks::NOOP
+      end
+
+      describe 'is a specific strategy' do
+        let(:lock) { Circuitry::Locks::Redis.new(client: MockRedis.new) }
+        it_behaves_like 'a valid lock strategy', Circuitry::Locks::Redis
+      end
+
+      describe 'is invalid' do
+        let(:lock) { 'invalid' }
+
+        it 'raises an error' do
+          expect { subject.new(queue, options) }.to raise_error(ArgumentError)
+        end
+      end
+    end
+  end
+
   describe '#subscribe' do
     before do
       Circuitry::Locks::Memory.store.clear
     end
 
-    describe 'when queue is not set' do
-      let(:queue) { nil }
-      let(:block) { ->{ } }
-
-      it 'raises an error' do
-        expect { subject.subscribe(queue, &block) }.to raise_error(ArgumentError)
-      end
-    end
-
-    describe 'when block is not given' do
-      let(:queue) { 'https://sqs.amazon.com/account/queue' }
-
+    describe 'when a block is not given' do
       it 'raises an error' do
         expect { subject.subscribe(queue) }.to raise_error(ArgumentError)
       end
     end
 
-    describe 'when queue and block are set' do
-      let(:queue) { 'https://sqs.amazon.com/account/queue' }
+    describe 'when a block is given' do
       let(:block) { ->(_, _) { } }
       let(:mock_sqs) { double('SQS', receive_message: double('Response', body: { 'Message' => messages })) }
       let(:mock_logger) { double('Logger', info: nil, warn: nil, error: nil) }
@@ -87,6 +135,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
           end
 
           describe 'when a duplicate message is received' do
+            let(:options) { { async: async, lock: lock } }
             let(:messages) do
               2.times.map do
                 { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json }
@@ -94,7 +143,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             end
 
             describe 'when locking is disabled' do
-              let(:options) { { async: async, lock: false } }
+              let(:lock) { false }
 
               it 'processes the duplicate' do
                 expect(block).to receive(:call).with('Foo', 'test-event-task-changed').twice
@@ -108,7 +157,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             end
 
             describe 'when locking is enabled' do
-              let(:options) { { async: async, lock: true } }
+              let(:lock) { true }
 
               it 'does not process the duplicate' do
                 expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
