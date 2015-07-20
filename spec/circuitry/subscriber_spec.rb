@@ -93,14 +93,32 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               end
             end
 
-            it 'does not process the duplicate' do
-              expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
-              subject.subscribe(&block)
+            describe 'when locking is disabled' do
+              let(:options) { { async: async, lock: false } }
+
+              it 'processes the duplicate' do
+                expect(block).to receive(:call).with('Foo', 'test-event-task-changed').twice
+                subject.subscribe(&block)
+              end
+
+              it 'deletes each message' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+              end
             end
 
-            it 'deletes each message' do
-              subject.subscribe(&block)
-              expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+            describe 'when locking is enabled' do
+              let(:options) { { async: async, lock: true } }
+
+              it 'does not process the duplicate' do
+                expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
+                subject.subscribe(&block)
+              end
+
+              it 'deletes each message' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+              end
             end
           end
 
@@ -148,7 +166,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         end
 
         describe 'synchronously' do
-          let(:options) { { async: false } }
+          let(:async) { false }
+          let(:options) { { async: async } }
 
           it 'does not process asynchronously' do
             expect(subject).to_not receive(:process_asynchronously)
@@ -164,7 +183,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             allow(mock_sqs).to receive(:delete_message)
           end
 
-          let(:options) { { async: true } }
+          let(:async) { true }
+          let(:options) { { async: async } }
           let(:messages) do
             [
                 { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json },

@@ -13,11 +13,11 @@ module Circuitry
     attr_reader :queue, :timeout, :wait_time, :batch_size, :lock_strategy
 
     DEFAULT_OPTIONS = {
+        lock: true,
         async: false,
         timeout: 15,
         wait_time: 10,
         batch_size: 10,
-        lock_strategy: Circuitry::Locks::Memory.new,
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -34,7 +34,7 @@ module Circuitry
       self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
       self.batch_size = options[:batch_size]
-      self.lock_strategy = options[:lock_strategy]
+      self.lock_strategy = options[:lock]
     end
 
     def subscribe(&block)
@@ -68,8 +68,11 @@ module Circuitry
     attr_writer :queue, :timeout, :wait_time, :batch_size
 
     def lock_strategy=(value)
-      unless value.is_a?(Circuitry::Locks::Base)
-        raise ArgumentErrot, "invalid value `#{value}`, must be instance of `#{Circuitry::Locks::Base}`"
+      value = case value
+        when true then Circuitry.config.lock_strategy
+        when false then Circuitry::Locks::NOOP.new
+        when Circuitry::Locks::Base then value
+        else raise ArgumentError, "Invalid value `#{value}`, must be one of `true`, `false`, or instance of `#{Circuitry::Locks::Base}`"
       end
 
       @lock_strategy = value

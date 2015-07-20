@@ -8,8 +8,7 @@ require 'redis'
 require 'mock_redis'
 require 'dalli'
 require 'memcache_mock'
-require 'pry'
-require 'pry-nav'
+require 'pry-byebug'
 require 'securerandom'
 
 # Requires supporting ruby files with custom matchers and macros, etc, in

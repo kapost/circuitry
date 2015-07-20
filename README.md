@@ -128,6 +128,12 @@ end
 The `subscribe` method also accepts options that impact instantiation of the
 `Subscriber` object, which currently includes the following options.
 
+* `:lock` - The strategy used to ensure that no duplicate messages are processed.
+  Accepts `true`, `false`, or an instance of a class inheriting from
+  `Circuitry::Locks::Base`.  Passing `true` uses the `lock_strategy` value from
+  the gem configuration.  Passing `false` uses the [NOOP](#NOOP) strategy. Please
+  refer to the [Lock Strategies](#lock-strategies) section for more details
+  regarding this option.  *(default: `true`)*
 * `:async` - Whether or not subscribing should occur in the background.  Accepts
   one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
   `subscribe_async_strategy` value from the gem configuration.  Passing an
@@ -143,17 +149,14 @@ The `subscribe` method also accepts options that impact instantiation of the
   short-polling.  *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   *(default: 10)*
-* `:lock_strategy` - The store used to ensure that no duplicate messages are
-  processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
-  more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
 
 ```ruby
 options = {
+  lock: true,
   async: true,
   timeout: 20,
   wait_time: 60,
-  batch_size: 20,
-  lock_strategy: Circuitry::Locks::Redis.new(url: 'redis://...')
+  batch_size: 20
 }
 
 Circuitry.subscribe('https://...', options) do |message, topic_name|
@@ -262,8 +265,10 @@ Circuitry.config.lock_strategy = Circuitry::Lock::Memory.new(
 #### Memory
 
 If not specified in your circuitry configuration, the memory store will be used
-by default.  This lock strategy should be avoided if running multiple subscriber
-processes.
+by default.  This lock strategy is provided as the lowest barrier to entry given
+that it has no third-party dependencies.  It should be avoided if running
+multiple subscriber processes or if expecting a high throughput that would result
+in a large amount of memory consumption.
 
 ```ruby
 Circuitry::Lock::Memory.new
@@ -314,6 +319,13 @@ client = Dalli::Client.new('localhost:11211', namespace: '...')
 Circuitry::Lock::Memcache.new(client: client)
 ```
 
+#### NOOP
+
+Using the noop lock strategy permits you to continue to treat SQS as a
+distributed queue in a true sense, meaning that you might receive duplicate
+messages.  Please refer to the Amazon SQS documentation pertaining to the
+[Properties of Distributed Queues](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/DistributedQueues.html).
+
 #### Custom
 
 It's also possible to roll your own lock strategy.  Simply create a class that
@@ -356,7 +368,7 @@ end
 ```
 
 To use, simply create an instance of the class with your necessary options, and
-pass your lock instance as the `:lock_strategy`.
+pass your lock instance to the configuration as the `:lock_strategy`.
 
 ```ruby
 connection = PG.connect(...)
