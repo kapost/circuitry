@@ -55,7 +55,7 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
-* `:lock_strategy` - The store used to ensure that no duplicate messages are
+* `lock_strategy` - The store used to ensure that no duplicate messages are
   processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
   more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
 * `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
