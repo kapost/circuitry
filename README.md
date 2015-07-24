@@ -36,7 +36,7 @@ Circuitry.config do |c|
     HoneyBadger.notify(error)
     HoneyBadger.flush
   end
-  c.lock_strategy = Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
+  c.lock_strategy = Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
   c.publish_async_strategy = :batch
   c.subscribe_async_strategy = :thread
 end
@@ -256,7 +256,7 @@ The soft and hard TTL values can be changed by passing a `:soft_ttl` or
 that a lock should persist.  For example:
 
 ```ruby
-Circuitry.config.lock_strategy = Circuitry::Lock::Memory.new(
+Circuitry.config.lock_strategy = Circuitry::Locks::Memory.new(
     soft_ttl: 10 * 60,      # 10 minutes
     hard_ttl: 48 * 60 * 60  # 48 hours
 )
@@ -271,7 +271,7 @@ multiple subscriber processes or if expecting a high throughput that would resul
 in a large amount of memory consumption.
 
 ```ruby
-Circuitry::Lock::Memory.new
+Circuitry::Locks::Memory.new
 ```
 
 #### Redis
@@ -284,7 +284,7 @@ redis connection options to the lock in the same way that you would when buildin
 a new `Redis` object.
 
 ```ruby
-Circuitry::Lock::Redis.new(url: 'redis://localhost:6379')
+Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
 ```
 
 The second way is to pass in a `:client` option that specifies the redis client
@@ -294,7 +294,7 @@ or utilizing [hiredis](https://github.com/redis/hiredis-rb).
 
 ```ruby
 client = Redis.new(url: 'redis://localhost:6379')
-Circuitry::Lock::Redis.new(client: client)
+Circuitry::Locks::Redis.new(client: client)
 ```
 
 #### Memcache
@@ -308,7 +308,7 @@ building a new `Dalli::Client` object.  The special `host` option will be treate
 as the memcache host, just as the first argument to `Dalli::Client`.
 
 ```ruby
-Circuitry::Lock::Memcache.new(host: 'localhost:11211', namespace: '...')
+Circuitry::Locks::Memcache.new(host: 'localhost:11211', namespace: '...')
 ```
 
 The second way is to pass in a `:client` option that specifies the dalli client
@@ -316,7 +316,7 @@ itself.  This is useful for sharing an existing memcache connection.
 
 ```ruby
 client = Dalli::Client.new('localhost:11211', namespace: '...')
-Circuitry::Lock::Memcache.new(client: client)
+Circuitry::Locks::Memcache.new(client: client)
 ```
 
 #### NOOP
@@ -329,7 +329,7 @@ messages.  Please refer to the Amazon SQS documentation pertaining to the
 #### Custom
 
 It's also possible to roll your own lock strategy.  Simply create a class that
-includes (or module that extends) `Circuitry::Lock::Base` and implements the
+includes (or module that extends) `Circuitry::Locks::Base` and implements the
 following methods:
 
 * `lock`: Accepts the `key` and `ttl` as parameters.  If the key is already
@@ -344,7 +344,7 @@ For example, a database-backed solution might look something like the following:
 
 ```ruby
 class DatabaseLockStrategy
-  include Circuitry::Lock::Base
+  include Circuitry::Locks::Base
 
   def initialize(options = {})
     super(options)
