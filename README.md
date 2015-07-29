@@ -247,7 +247,7 @@ The circuitry gem handles this by caching SQS message IDs: first via a "soft
 lock" that denotes the message is about to be processed, then via a "hard lock"
 that denotes the message has finished processing.
 
-The soft lock has a default TTL of 15 minutes (a seemingly sane amount of time
+The soft lock has a default TTL of 5 minutes (a seemingly sane amount of time
 during which processing most queue messages should certainly be able to
 complete), while the hard lock has a default TTL of 24 hours (based upon
 [a suggestion by an AWS employee](https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
