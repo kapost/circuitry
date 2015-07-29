@@ -22,6 +22,10 @@ module Circuitry
         client.set(key, (Time.now + ttl).to_i, ttl)
       end
 
+      def unlock!(key)
+        client.delete(key)
+      end
+
       private
 
       attr_accessor :client

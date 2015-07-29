@@ -116,6 +116,7 @@ module Circuitry
             block.call(message.body, message.topic.name)
           end
         rescue => e
+          lock.unlock(message.id)
           logger.error("Error handling message #{message.id}: #{e}")
           raise e
         end

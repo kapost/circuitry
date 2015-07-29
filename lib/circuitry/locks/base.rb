@@ -1,7 +1,7 @@
 module Circuitry
   module Locks
     module Base
-      DEFAULT_SOFT_TTL = (15 * 60).freeze       # 15 minutes
+      DEFAULT_SOFT_TTL = (5 * 60).freeze        # 5 minutes
       DEFAULT_HARD_TTL = (24 * 60 * 60).freeze  # 24 hours
 
       attr_reader :soft_ttl, :hard_ttl
@@ -19,6 +19,10 @@ module Circuitry
         lock!(lock_key(id), hard_ttl)
       end
 
+      def unlock(id)
+        unlock!(lock_key(id))
+      end
+
       protected
 
       def lock(key, ttl)
@@ -26,6 +30,10 @@ module Circuitry
       end
 
       def lock!(key, ttl)
+        raise NotImplementedError
+      end
+
+      def unlock!(key)
         raise NotImplementedError
       end
 

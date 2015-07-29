@@ -36,6 +36,12 @@ module Circuitry
         end
       end
 
+      def unlock!(key)
+        store do |store|
+          store.delete(key)
+        end
+      end
+
       private
 
       def store(&block)

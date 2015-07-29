@@ -247,7 +247,7 @@ The circuitry gem handles this by caching SQS message IDs: first via a "soft
 lock" that denotes the message is about to be processed, then via a "hard lock"
 that denotes the message has finished processing.
 
-The soft lock has a default TTL of 15 minutes (a seemingly sane amount of time
+The soft lock has a default TTL of 5 minutes (a seemingly sane amount of time
 during which processing most queue messages should certainly be able to
 complete), while the hard lock has a default TTL of 24 hours (based upon
 [a suggestion by an AWS employee](https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
@@ -339,6 +339,8 @@ following methods:
   processed more than once.
 * `lock!`: Accepts the `key` and `ttl` as parameters.  Must lock the key for
   `ttl` seconds regardless of whether or not the key was previously locked.
+* `unlock!`: Accepts the `key` as a parameter.  Must unlock (delete) the key if
+  it was previously locked.
 
 For example, a database-backed solution might look something like the following:
 
@@ -359,6 +361,10 @@ class DatabaseLockStrategy
 
   def lock!(key, ttl)
     connection.exec("UPSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
+  end
+
+  def unlock!(key)
+    connection.exec("DELETE FROM locks WHERE key = '#{key}'")
   end
 
   private

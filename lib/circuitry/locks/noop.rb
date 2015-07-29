@@ -12,6 +12,10 @@ module Circuitry
       def lock!(key, ttl)
         # do nothing
       end
+
+      def unlock!(key)
+        # do nothing
+      end
     end
   end
 end
