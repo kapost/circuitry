@@ -339,6 +339,8 @@ following methods:
   processed more than once.
 * `lock!`: Accepts the `key` and `ttl` as parameters.  Must lock the key for
   `ttl` seconds regardless of whether or not the key was previously locked.
+* `unlock!`: Accepts the `key` as a parameter.  Must unlock (delete) the key if
+  it was previously locked.
 
 For example, a database-backed solution might look something like the following:
 
@@ -359,6 +361,10 @@ class DatabaseLockStrategy
 
   def lock!(key, ttl)
     connection.exec("UPSERT INTO locks (key, expires_at) VALUES ('#{key}', '#{Time.now + ttl}')")
+  end
+
+  def unlock!(key)
+    connection.exec("DELETE FROM locks WHERE key = '#{key}'")
   end
 
   private
