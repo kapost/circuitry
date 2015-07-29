@@ -19,6 +19,10 @@ module Circuitry
         lock!(lock_key(id), hard_ttl)
       end
 
+      def unlock(id)
+        unlock!(lock_key(id))
+      end
+
       protected
 
       def lock(key, ttl)
@@ -26,6 +30,10 @@ module Circuitry
       end
 
       def lock!(key, ttl)
+        raise NotImplementedError
+      end
+
+      def unlock!(key)
         raise NotImplementedError
       end
 

@@ -8,6 +8,9 @@ lock_class = Class.new do
 
   def lock!(key, ttl)
   end
+
+  def unlock!(key)
+  end
 end
 
 incomplete_lock_class = Class.new do
@@ -59,6 +62,29 @@ RSpec.describe Circuitry::Locks::Base, type: :model do
 
       it 'raises an error' do
         expect { subject.hard_lock(id) }.to raise_error(NotImplementedError)
+      end
+    end
+  end
+
+  describe '#unlock' do
+    let(:id) { SecureRandom.hex(100) }
+
+    describe 'when the class has defined #unlock!' do
+      it 'delegates to the #unlock method' do
+        expect(subject).to receive(:unlock!).with("circuitry:lock:#{id}")
+        subject.unlock(id)
+      end
+
+      it 'does not raise an error' do
+        expect { subject.unlock(id) }.to_not raise_error
+      end
+    end
+
+    describe 'when the class has not defined #unlock!' do
+      subject { incomplete_lock_class.new }
+
+      it 'raises an error' do
+        expect { subject.unlock(id) }.to raise_error(NotImplementedError)
       end
     end
   end

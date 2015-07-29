@@ -73,4 +73,17 @@ RSpec.shared_examples_for 'a lock' do
       it_behaves_like 'an overwriting lock'
     end
   end
+
+  describe '#lock' do
+    let(:id) { SecureRandom.hex(100) }
+
+    before do
+      subject.hard_lock(id)
+    end
+
+    it 'deletes the lock' do
+      subject.unlock(id)
+      expect(subject.soft_lock(id)).to be true
+    end
+  end
 end

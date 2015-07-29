@@ -199,6 +199,11 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               expect(mock_sqs).to_not have_received(:delete_message).with(queue, 'delete-one')
             end
 
+            it 'unlocks failing messages' do
+              expect(subject.lock).to receive(:unlock).with('one')
+              subject.subscribe(&block)
+            end
+
             describe 'when error logger is configured' do
               let(:error_handler) { ->(_) { } }
 
