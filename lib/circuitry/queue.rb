@@ -6,8 +6,12 @@ module Circuitry
 
     attr_reader :url
 
-    def initialize(queue_url)
-      @url = queue_url
+    def initialize(url)
+      @url = url
+    end
+
+    def name
+      url.split('/').last
     end
 
     def arn
@@ -15,8 +19,11 @@ module Circuitry
     end
 
     def policy=(policy)
-      policy = Fog::JSON.encode(policy) unless policy.is_a?(String)
-      set_attribute('Policy', policy)
+      set_attribute('Policy', encode(policy))
+    end
+
+    def redrive_policy=(policy)
+      set_attribute('RedrivePolicy', encode(policy))
     end
 
     private
@@ -29,10 +36,14 @@ module Circuitry
       sqs.set_queue_attributes(url, name, value)
     end
 
+    def encode(value)
+      value.is_a?(String) ? value : Fog::JSON.encode(value)
+    end
+
     class << self
       include Services::SQS
 
-      def create(name, options)
+      def create(name, options = {})
         new(sqs.create_queue(name, options).body['QueueUrl'])
       end
     end
