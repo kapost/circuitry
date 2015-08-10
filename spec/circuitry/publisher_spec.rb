@@ -39,7 +39,7 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       describe 'when AWS credentials are set' do
         before do
-          allow(subject).to receive(:can_publish?).and_return(true)
+          allow(Circuitry.config).to receive(:aws_options).and_return(aws_access_key_id: 'key', aws_secret_access_key: 'secret', region: 'region')
         end
 
         shared_examples_for 'a valid publish request' do
@@ -78,8 +78,8 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(subject).to receive(:can_publish?).and_return(false)
-          allow(subject).to receive(:logger).and_return(logger)
+          allow(Circuitry.config).to receive(:aws_options).and_return(aws_access_key_id: '', aws_secret_access_key: '', region: 'region')
+          allow(Circuitry.config).to receive(:logger).and_return(logger)
         end
 
         let(:logger) { double('Logger', warn: true) }
