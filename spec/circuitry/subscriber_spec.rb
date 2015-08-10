@@ -81,13 +81,13 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
     describe 'when a block is given' do
       let(:block) { ->(_, _) { } }
+      let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
       let(:mock_sqs) { double('SQS', receive_message: double('Response', body: { 'Message' => messages })) }
-      let(:mock_logger) { double('Logger', info: nil, warn: nil, error: nil) }
       let(:messages) { [] }
 
       before do
+        allow(Circuitry.config).to receive(:logger).and_return(logger)
         allow(subject).to receive(:sqs).and_return(mock_sqs)
-        allow(subject).to receive(:logger).and_return(mock_logger)
         allow(subject).to receive(:loop) do |&block|
           block.call
         end
@@ -95,7 +95,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       describe 'when AWS credentials are set' do
         before do
-          allow(subject).to receive(:can_subscribe?).and_return(true)
+          allow(Circuitry.config).to receive(:aws_options).and_return(aws_access_key_id: 'key', aws_secret_access_key: 'secret', region: 'region')
         end
 
         it 'subscribes to SQS' do
@@ -181,12 +181,12 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
             it 'logs error for failing messages' do
               subject.subscribe(&block)
-              expect(mock_logger).to have_received(:error).with('Error handling message one: test error')
+              expect(logger).to have_received(:error).with('Error handling message one: test error')
             end
 
             it 'does not log error for successful messages' do
               subject.subscribe(&block)
-              expect(mock_logger).to_not have_received(:error).with('Error handling message two: test error')
+              expect(logger).to_not have_received(:error).with('Error handling message two: test error')
             end
 
             it 'deletes successful messages' do
@@ -257,8 +257,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(subject).to receive(:can_subscribe?).and_return(false)
-          allow(subject).to receive(:logger).and_return(logger)
+          allow(Circuitry.config).to receive(:aws_options).and_return(aws_access_key_id: '', aws_secret_access_key: '', region: 'region')
+          allow(Circuitry.config).to receive(:logger).and_return(logger)
         end
 
         let(:logger) { double('Logger', warn: true) }
