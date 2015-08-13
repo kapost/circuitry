@@ -24,6 +24,12 @@ module Circuitry
         Excon::Errors::Forbidden,
     ].freeze
 
+    TEMPORARY_ERRORS = [
+        Excon::Errors::InternalServerError,
+        Excon::Errors::ServiceUnavailable,
+        Excon::Errors::Timeout,
+    ].freeze
+
     def initialize(queue, options = {})
       raise ArgumentError.new('queue cannot be nil') if queue.nil?
 
@@ -81,7 +87,15 @@ module Circuitry
     private
 
     def receive_messages(&block)
-      response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
+      response = nil
+
+      begin
+        response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
+      rescue *TEMPORARY_ERRORS => e
+        logger.info("Temporary issue connecting to SQS: #{e.message}")
+        return
+      end
+
       messages = response.body['Message']
       return if messages.empty?
 
