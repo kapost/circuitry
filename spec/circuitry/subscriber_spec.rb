@@ -104,9 +104,32 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         end
 
         describe 'when a connection error is raised' do
-          it 'raises wraps the error' do
+          before do
             allow(subject).to receive(:receive_messages).and_raise(described_class::CONNECTION_ERRORS.first, 'Forbidden')
+          end
+
+          it 'raises a wrapped error' do
             expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
+          end
+
+          it 'logs an error' do
+            subject.subscribe(&block) rescue nil
+            expect(logger).to have_received(:error)
+          end
+        end
+
+        describe 'when a temporary error is raised' do
+          before do
+            allow(mock_sqs).to receive(:receive_message).and_raise(described_class::TEMPORARY_ERRORS.first, 'Server Error')
+          end
+
+          it 'does not raise an error' do
+            expect { subject.subscribe(&block) }.to_not raise_error
+          end
+
+          it 'logs info' do
+            subject.subscribe(&block) rescue nil
+            expect(logger).to have_received(:info)
           end
         end
 
