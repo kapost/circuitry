@@ -27,6 +27,7 @@ module Circuitry
     TEMPORARY_ERRORS = [
         Excon::Errors::InternalServerError,
         Excon::Errors::ServiceUnavailable,
+        Excon::Errors::SocketError,
         Excon::Errors::Timeout,
     ].freeze
 
