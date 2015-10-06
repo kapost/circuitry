@@ -30,4 +30,21 @@ RSpec.describe Circuitry::Processors::Forker, type: :model do
       expect { subject.flush }.to_not raise_error
     end
   end
+
+  describe 'when on_fork_exit is defined' do
+    let(:block) { ->{ } }
+    let(:on_fork_exit) { double('Proc', call: true) }
+
+    before do
+      allow(subject).to receive(:fork) { |&block| block.call }
+      allow(Process).to receive(:detach)
+      allow(Circuitry.config).to receive(:on_fork_exit).and_return(on_fork_exit)
+    end
+
+    it 'calls the proc' do
+      subject.process(&block)
+      subject.flush
+      expect(on_fork_exit).to have_received(:call)
+    end
+  end
 end
