@@ -39,6 +39,8 @@ Circuitry.config do |c|
   c.lock_strategy = Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
   c.publish_async_strategy = :batch
   c.subscribe_async_strategy = :thread
+  c.on_thread_exit = proc { Mongoid.disconnect_sessions }
+  c.on_fork_exit = proc { Mongoid.disconnect_sessions }
 end
 ```
 
@@ -73,6 +75,14 @@ Available configuration options include:
     queue.
   * `:thread`: Creates a new thread that immediately sends begins querying the
     queue.
+* `on_thread_exit`: An object that responds to `call`.  This is useful for
+  managing shared resources such as database connections that require closing.
+  It is only called when implementing the `:thread` async strategy.  *(optional,
+  default: `nil`)*
+* `on_fork_exit`: An object that responds to `call`.  This is useful for
+  managing shared resources such as database connections that require closing,
+  It is only called when implementing the `:fork` async strategy.  *(optional,
+  default: `nil`)*
 
 ### Publishing
 
