@@ -297,13 +297,18 @@ a new `Redis` object.
 Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
 ```
 
-The second way is to pass in a `:client` option that specifies the redis client
-itself.  This is useful for more advanced usage such as sharing an existing redis
-connection, utilizing [Redis::Namespace](https://github.com/resque/redis-namespace),
-or utilizing [hiredis](https://github.com/redis/hiredis-rb).
+The second way is to pass in a `:client` option that specifies either the redis
+client itself or a [ConnectionPool](https://github.com/mperham/connection_pool)
+of redis clients.  This is useful for more advanced usage such as sharing an
+existing redis connection, connection pooling, utilizing
+[Redis::Namespace](https://github.com/resque/redis-namespace), or utilizing
+[hiredis](https://github.com/redis/hiredis-rb).
 
 ```ruby
 client = Redis.new(url: 'redis://localhost:6379')
+Circuitry::Locks::Redis.new(client: client)
+
+client = ConnectionPool.new(size: 5) { Redis.new }
 Circuitry::Locks::Redis.new(client: client)
 ```
 
