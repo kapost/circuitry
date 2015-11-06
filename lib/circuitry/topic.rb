@@ -7,7 +7,7 @@ module Circuitry
     end
 
     def name
-      arn.split(':').last
+      @name ||= arn.split(':').last
     end
 
     def ==(obj)
