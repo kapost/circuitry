@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'mock_redis'
   spec.add_development_dependency 'dalli'
   spec.add_development_dependency 'memcache_mock'
+  spec.add_development_dependency 'connection_pool'
 end
