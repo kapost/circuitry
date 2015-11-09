@@ -8,6 +8,7 @@ require 'redis'
 require 'mock_redis'
 require 'dalli'
 require 'memcache_mock'
+require 'connection_pool'
 require 'pry-byebug'
 require 'securerandom'
 
