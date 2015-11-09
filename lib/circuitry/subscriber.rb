@@ -146,7 +146,7 @@ module Circuitry
     def delete_message(message)
       logger.info("Removing message #{message.id} from queue")
 
-      handler = ->(exception, attempt_number, total_delay) do
+      handler = ->(exception, attempt_number, _total_delay) do
         logger.info("Temporary issue deleting message #{message.id} from SQS: #{exception.message} (attempt ##{attempt_number})")
       end
 
