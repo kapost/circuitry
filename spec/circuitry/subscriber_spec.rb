@@ -240,6 +240,28 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               end
             end
           end
+
+          describe 'when deleting fails' do
+            before do
+              num_calls = 0
+
+              allow(mock_sqs).to receive(:delete_message) do
+                num_calls += 1
+                raise described_class::TEMPORARY_ERRORS.first, 'Server Error' if num_calls < 3
+              end
+            end
+
+            it 'logs' do
+              subject.subscribe(&block)
+              expect(logger).to have_received(:info).with('Temporary issue deleting message one from SQS: Server Error (attempt #1)')
+              expect(logger).to have_received(:info).with('Temporary issue deleting message one from SQS: Server Error (attempt #2)')
+            end
+
+            it 'retries' do
+              subject.subscribe(&block)
+              expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').thrice
+            end
+          end
         end
 
         describe 'synchronously' do
