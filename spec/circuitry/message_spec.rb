@@ -1,15 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe Circuitry::Message, type: :model do
-  subject { described_class.new(raw) }
+  subject { described_class.new(sqs_message) }
 
-  let(:raw) do
-    {
-        'MessageId' => id,
-        'ReceiptHandle' => handle,
-        'Body' => context.to_json,
-    }
-  end
+  let(:sqs_message) { double(message_id: id, receipt_handle: handle, body: context.to_json) }
 
   let(:id) { '123' }
   let(:handle) { '456' }
@@ -17,7 +11,7 @@ RSpec.describe Circuitry::Message, type: :model do
   let(:arn) { 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }
   let(:context) { { 'Message' => body.to_json, 'TopicArn' => arn } }
 
-  its(:raw) { is_expected.to eq raw }
+  its(:sqs_message) { is_expected.to eq sqs_message }
   its(:id) { is_expected.to eq id }
   its(:context) { is_expected.to eq context }
   its(:body) { is_expected.to eq body }

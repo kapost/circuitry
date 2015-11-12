@@ -22,14 +22,6 @@ module Circuitry
     }.freeze
 
     CONNECTION_ERRORS = [
-        Excon::Errors::Forbidden,
-    ].freeze
-
-    TEMPORARY_ERRORS = [
-        Excon::Errors::InternalServerError,
-        Excon::Errors::ServiceUnavailable,
-        Excon::Errors::SocketError,
-        Excon::Errors::Timeout,
     ].freeze
 
     def initialize(queue, options = {})
@@ -37,30 +29,31 @@ module Circuitry
 
       options = DEFAULT_OPTIONS.merge(options)
 
+      self.subscribed = false
       self.queue = queue
       self.lock = options[:lock]
       self.async = options[:async]
       self.timeout = options[:timeout]
       self.wait_time = options[:wait_time]
       self.batch_size = options[:batch_size]
+
+      trap_signals
     end
 
     def subscribe(&block)
       raise ArgumentError.new('block required') if block.nil?
+      raise SubscribeError.new('AWS configuration is not set') unless can_subscribe?
 
-      unless can_subscribe?
-        logger.warn('Circuitry unable to subscribe: AWS configuration is not set.')
-        return
-      end
+      logger.info("Subscribing to queue: #{queue}")
 
-      loop do
-        begin
-          receive_messages(&block)
-        rescue *CONNECTION_ERRORS => e
-          logger.error("Connection error to #{queue}: #{e}")
-          raise SubscribeError.new(e)
-        end
-      end
+      self.subscribed = true
+      poll(&block) while subscribed?
+
+      logger.info("Unsubscribed from queue: #{queue}")
+    end
+
+    def subscribed?
+      subscribed
     end
 
     def self.async_strategies
@@ -74,6 +67,7 @@ module Circuitry
     protected
 
     attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_accessor :subscribed
 
     def lock=(value)
       value = case value
@@ -88,20 +82,30 @@ module Circuitry
 
     private
 
-    def receive_messages(&block)
-      response = nil
-
-      begin
-        response = sqs.receive_message(queue, 'MaxNumberOfMessages' => batch_size, 'WaitTimeSeconds' => wait_time)
-      rescue *TEMPORARY_ERRORS => e
-        logger.info("Temporary issue connecting to SQS: #{e.message}")
-        return
+    def trap_signals
+      trap('SIGINT') do
+        if subscribed?
+          Thread.new { logger.info('Interrupt received, unsubscribing from queue...') }
+          self.subscribed = false
+        end
       end
+    end
 
-      messages = response.body['Message']
-      return if messages.empty?
+    def poll(&block)
+      receive_messages(&block)
+    rescue *CONNECTION_ERRORS => e
+      logger.error("Connection error to #{queue}: #{e}")
+      raise SubscribeError.new(e)
+    end
 
-      messages.each do |message|
+    def receive_messages(&block)
+      response = sqs.receive_message(
+          queue_url:              queue,
+          max_number_of_messages: batch_size,
+          wait_time_seconds:      wait_time
+      )
+
+      response.messages.each do |message|
         process = -> do
           process_message(message, &block)
         end
@@ -145,14 +149,7 @@ module Circuitry
 
     def delete_message(message)
       logger.info("Removing message #{message.id} from queue")
-
-      handler = ->(exception, attempt_number, _total_delay) do
-        logger.info("Temporary issue deleting message #{message.id} from SQS: #{exception.message} (attempt ##{attempt_number})")
-      end
-
-      with_retries(max_tries: 3, base_sleep_seconds: 0, max_sleep_seconds: 0, handler: handler, rescue: TEMPORARY_ERRORS) do
-        sqs.delete_message(queue, message.receipt_handle)
-      end
+      sqs.delete_message(queue_url: queue, receipt_handle: message.receipt_handle)
     end
 
     def logger

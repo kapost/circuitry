@@ -1,10 +1,10 @@
-require 'fog/aws'
+require 'aws-sdk'
 
 module Circuitry
   module Services
     module SNS
       def sns
-        @sns ||= Fog::AWS::SNS.new(Circuitry.config.aws_options)
+        @sns ||= Aws::SNS::Client.new(Circuitry.config.aws_options)
       end
     end
   end
