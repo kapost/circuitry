@@ -107,20 +107,22 @@ RSpec.describe Circuitry::Subscriber, type: :model do
           expect(mock_sqs).to have_received(:receive_message).with(hash_including(queue_url: queue))
         end
 
-        # describe 'when a connection error is raised' do
-        #   before do
-        #     allow(subject).to receive(:receive_messages).and_raise(described_class::CONNECTION_ERRORS.first, 'Forbidden')
-        #   end
-        #
-        #   it 'raises a wrapped error' do
-        #     expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
-        #   end
-        #
-        #   it 'logs an error' do
-        #     subject.subscribe(&block) rescue nil
-        #     expect(logger).to have_received(:error)
-        #   end
-        # end
+        describe 'when a connection error is raised' do
+          before do
+            allow(subject).to receive(:receive_messages).and_raise(error)
+          end
+
+          let(:error) { described_class::CONNECTION_ERRORS.first.new(double('Seahorse::Client::RequestContext'), 'Queue does not exist') }
+
+          it 'raises a wrapped error' do
+            expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
+          end
+
+          it 'logs an error' do
+            subject.subscribe(&block) rescue nil
+            expect(logger).to have_received(:error)
+          end
+        end
 
         shared_examples_for 'a valid subscribe request' do
           let(:messages) do

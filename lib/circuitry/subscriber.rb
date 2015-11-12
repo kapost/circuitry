@@ -22,6 +22,7 @@ module Circuitry
     }.freeze
 
     CONNECTION_ERRORS = [
+        Aws::SQS::Errors::ServiceError,
     ].freeze
 
     def initialize(queue, options = {})
