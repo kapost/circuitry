@@ -1,3 +1,4 @@
+require 'retries'
 require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sqs'
@@ -144,7 +145,14 @@ module Circuitry
 
     def delete_message(message)
       logger.info("Removing message #{message.id} from queue")
-      sqs.delete_message(queue, message.receipt_handle)
+
+      handler = ->(exception, attempt_number, _total_delay) do
+        logger.info("Temporary issue deleting message #{message.id} from SQS: #{exception.message} (attempt ##{attempt_number})")
+      end
+
+      with_retries(max_tries: 3, base_sleep_seconds: 0, max_sleep_seconds: 0, handler: handler, rescue: TEMPORARY_ERRORS) do
+        sqs.delete_message(queue, message.receipt_handle)
+      end
     end
 
     def logger

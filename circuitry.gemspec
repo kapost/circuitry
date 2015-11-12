@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'fog-aws', '~> 0.4'
+  spec.add_dependency 'retries', '~> 0.0.5'
   spec.add_dependency 'virtus', '~> 1.0'
 
   spec.add_development_dependency 'pry-byebug'
