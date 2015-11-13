@@ -48,9 +48,13 @@ module Circuitry
       logger.info("Subscribing to queue: #{queue}")
 
       self.subscribed = true
-      poll(&block) while subscribed?
+      poll(&block)
+      self.subscribed = false
 
       logger.info("Unsubscribed from queue: #{queue}")
+    rescue *CONNECTION_ERRORS => e
+      logger.error("Connection error to queue: #{queue}: #{e}")
+      raise SubscribeError.new(e)
     end
 
     def subscribed?
@@ -93,20 +97,19 @@ module Circuitry
     end
 
     def poll(&block)
-      receive_messages(&block)
-    rescue *CONNECTION_ERRORS => e
-      logger.error("Connection error to #{queue}: #{e}")
-      raise SubscribeError.new(e)
+      poller = Aws::SQS::QueuePoller.new(queue, client: sqs)
+
+      poller.before_request do |_stats|
+        throw :stop_polling unless subscribed?
+      end
+
+      poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
+        process_messages(Array(messages), &block)
+      end
     end
 
-    def receive_messages(&block)
-      response = sqs.receive_message(
-          queue_url:              queue,
-          max_number_of_messages: batch_size,
-          wait_time_seconds:      wait_time
-      )
-
-      response.messages.each do |message|
+    def process_messages(messages, &block)
+      messages.each do |message|
         process = -> do
           process_message(message, &block)
         end
