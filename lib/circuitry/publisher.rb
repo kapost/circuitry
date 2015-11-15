@@ -28,16 +28,12 @@ module Circuitry
     def publish(topic_name, object)
       raise ArgumentError.new('topic_name cannot be nil') if topic_name.nil?
       raise ArgumentError.new('object cannot be nil') if object.nil?
-
-      unless can_publish?
-        logger.warn('Circuitry unable to publish: AWS configuration is not set.')
-        return
-      end
+      raise PublishError.new('AWS configuration is not set') unless can_publish?
 
       process = -> do
         Timeout.timeout(timeout) do
           topic = TopicCreator.find_or_create(topic_name)
-          sns.publish(topic.arn, object.to_json)
+          sns.publish(topic_arn: topic.arn, message: object.to_json)
         end
       end
 

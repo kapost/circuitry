@@ -2,8 +2,6 @@ require 'circuitry/services/sns'
 require 'circuitry/topic'
 
 module Circuitry
-  class TopicCreatorError < StandardError; end
-
   class TopicCreator
     include Services::SNS
 
@@ -20,9 +18,8 @@ module Circuitry
     def topic
       return @topic if defined?(@topic)
 
-      response = sns.create_topic(topic_name)
-      arn = response.body.fetch('TopicArn') { raise TopicCreatorError.new('No TopicArn returned from SNS') }
-      @topic = Topic.new(arn)
+      response = sns.create_topic(name: topic_name)
+      @topic = Topic.new(response.topic_arn)
     end
   end
 end
