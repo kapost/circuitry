@@ -27,32 +27,20 @@ RSpec.describe Circuitry::TopicCreator, type: :model do
 
     let(:topic_name) { 'topic' }
     let(:mock_sns) { double('SNS') }
-    let(:response) { double('Response', body: body) }
+    let(:response) { double('Aws::SNS::Types::CreateTopicResponse', topic_arn: arn) }
+    let(:arn) { 'arn:aws:sns:us-east-1:123456789012:some-topic-name' }
 
     before do
       allow(subject).to receive(:sns).and_return(mock_sns)
-      allow(mock_sns).to receive(:create_topic).with(topic_name).and_return(response)
+      allow(mock_sns).to receive(:create_topic).with(name: topic_name).and_return(response)
     end
 
-    describe 'when response includes a topic ARN' do
-      let(:body) { { 'TopicArn' => arn } }
-      let(:arn) { 'arn:aws:sns:us-east-1:123456789012:some-topic-name' }
-
-      it 'returns the topic' do
-        expect(subject.topic).to be_a Circuitry::Topic
-      end
-
-      it 'sets the topic ARN' do
-        expect(subject.topic.arn).to eq arn
-      end
+    it 'returns the topic' do
+      expect(subject.topic).to be_a Circuitry::Topic
     end
 
-    describe 'when response does not include a topic ARN' do
-      let(:body) { {} }
-
-      it 'raises an error' do
-        expect { subject.topic }.to raise_error(Circuitry::TopicCreatorError)
-      end
+    it 'sets the topic ARN' do
+      expect(subject.topic.arn).to eq arn
     end
   end
 end

@@ -3,14 +3,14 @@ require 'circuitry/topic'
 
 module Circuitry
   class Message
-    attr_reader :raw
+    attr_reader :sqs_message
 
-    def initialize(raw)
-      @raw = raw
+    def initialize(sqs_message)
+      @sqs_message = sqs_message
     end
 
     def context
-      @context ||= JSON.parse(raw['Body'])
+      @context ||= JSON.parse(sqs_message.body)
     end
 
     def body
@@ -22,11 +22,11 @@ module Circuitry
     end
 
     def id
-      raw['MessageId']
+      sqs_message.message_id
     end
 
     def receipt_handle
-      raw['ReceiptHandle']
+      sqs_message.receipt_handle
     end
   end
 end

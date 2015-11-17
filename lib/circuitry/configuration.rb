@@ -13,6 +13,8 @@ module Circuitry
     attribute :lock_strategy, Object, default: ->(page, attribute) { Circuitry::Locks::Memory.new }
     attribute :publish_async_strategy, Symbol, default: ->(page, attribute) { :fork }
     attribute :subscribe_async_strategy, Symbol, default: ->(page, attribute) { :fork }
+    attribute :on_thread_exit
+    attribute :on_fork_exit
 
     def publish_async_strategy=(value)
       validate(value, Publisher.async_strategies)
@@ -26,9 +28,9 @@ module Circuitry
 
     def aws_options
       {
-          aws_access_key_id:     access_key,
-          aws_secret_access_key: secret_key,
-          region:                region,
+          access_key_id:     access_key,
+          secret_access_key: secret_key,
+          region:            region,
       }
     end
 

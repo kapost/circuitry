@@ -8,10 +8,18 @@ RSpec.describe Circuitry::Locks::Redis, type: :model do
   let(:client) { MockRedis.new }
 
   before do
-    client.flushdb
+    client.respond_to?(:flushdb) ? client.flushdb : client.with(&:flushdb)
   end
 
-  it_behaves_like 'a lock'
+  describe 'with redis connection' do
+    it_behaves_like 'a lock'
+  end
+
+  describe 'with redis connection pool' do
+    let(:client) { ConnectionPool.new(size: 1) { MockRedis.new } }
+
+    it_behaves_like 'a lock'
+  end
 
   describe '.new' do
     subject { described_class }

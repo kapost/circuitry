@@ -81,45 +81,54 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
     describe 'when a block is given' do
       let(:block) { ->(_, _) { } }
-      let(:mock_sqs) { double('SQS', receive_message: double('Response', body: { 'Message' => messages })) }
-      let(:mock_logger) { double('Logger', info: nil, warn: nil, error: nil) }
+      let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
+      let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true) }
+      let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
       let(:messages) { [] }
 
       before do
+        allow(Circuitry.config).to receive(:logger).and_return(logger)
         allow(subject).to receive(:sqs).and_return(mock_sqs)
-        allow(subject).to receive(:logger).and_return(mock_logger)
-        allow(subject).to receive(:loop) do |&block|
-          block.call
+        allow(Aws::SQS::QueuePoller).to receive(:new).with(queue, client: mock_sqs).and_return(mock_poller)
+
+        allow(mock_poller).to receive(:poll) do |&block|
+          block.call(messages)
         end
       end
 
       describe 'when AWS credentials are set' do
         before do
-          allow(subject).to receive(:can_subscribe?).and_return(true)
+          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
         end
 
         it 'subscribes to SQS' do
           subject.subscribe(&block)
-          expect(mock_sqs).to have_received(:receive_message).with(queue, any_args)
+          expect(mock_poller).to have_received(:poll)
         end
 
         describe 'when a connection error is raised' do
-          it 'raises wraps the error' do
-            allow(subject).to receive(:receive_messages).and_raise(described_class::CONNECTION_ERRORS.first, 'Forbidden')
+          before do
+            allow(subject).to receive(:process_messages).and_raise(error)
+          end
+
+          let(:error) { described_class::CONNECTION_ERRORS.first.new(double('Seahorse::Client::RequestContext'), 'Queue does not exist') }
+
+          it 'raises a wrapped error' do
             expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
+          end
+
+          it 'logs an error' do
+            subject.subscribe(&block) rescue nil
+            expect(logger).to have_received(:error)
           end
         end
 
         shared_examples_for 'a valid subscribe request' do
           let(:messages) do
             [
-                { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json },
-                { 'MessageId' => 'two', 'ReceiptHandle' => 'delete-two', 'Body' => { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json },
+                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
+                double('Aws::SQS::Types::Message', message_id: 'two', receipt_handle: 'delete-two', body: { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json),
             ]
-          end
-
-          before do
-            allow(mock_sqs).to receive(:delete_message)
           end
 
           it 'processes each message' do
@@ -130,15 +139,15 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
           it 'deletes each message' do
             subject.subscribe(&block)
-            expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one')
-            expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-two')
+            expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+            expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
           end
 
           describe 'when a duplicate message is received' do
             let(:options) { { async: async, lock: lock } }
             let(:messages) do
               2.times.map do
-                { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json }
+                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
               end
             end
 
@@ -152,7 +161,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
               it 'deletes each message' do
                 subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').twice
               end
             end
 
@@ -166,7 +175,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
               it 'deletes each message' do
                 subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-one').twice
+                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').twice
               end
             end
           end
@@ -181,22 +190,22 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
             it 'logs error for failing messages' do
               subject.subscribe(&block)
-              expect(mock_logger).to have_received(:error).with('Error handling message one: test error')
+              expect(logger).to have_received(:error).with('Error handling message one: test error')
             end
 
             it 'does not log error for successful messages' do
               subject.subscribe(&block)
-              expect(mock_logger).to_not have_received(:error).with('Error handling message two: test error')
+              expect(logger).to_not have_received(:error).with('Error handling message two: test error')
             end
 
             it 'deletes successful messages' do
               subject.subscribe(&block)
-              expect(mock_sqs).to have_received(:delete_message).with(queue, 'delete-two')
+              expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
             end
 
             it 'does not delete failing messages' do
               subject.subscribe(&block)
-              expect(mock_sqs).to_not have_received(:delete_message).with(queue, 'delete-one')
+              expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
             end
 
             it 'unlocks failing messages' do
@@ -234,15 +243,14 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         describe 'asynchronously' do
           before do
             allow(subject).to receive(:process_asynchronously) { |&block| block.call }
-            allow(mock_sqs).to receive(:delete_message)
           end
 
           let(:async) { true }
           let(:options) { { async: async } }
           let(:messages) do
             [
-                { 'MessageId' => 'one', 'ReceiptHandle' => 'delete-one', 'Body' => { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json },
-                { 'MessageId' => 'two', 'ReceiptHandle' => 'delete-two', 'Body' => { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json },
+                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
+                double('Aws::SQS::Types::Message', message_id: 'two', receipt_handle: 'delete-two', body: { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json),
             ]
           end
 
@@ -257,20 +265,16 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(subject).to receive(:can_subscribe?).and_return(false)
-          allow(subject).to receive(:logger).and_return(logger)
+          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
         end
-
-        let(:logger) { double('Logger', warn: true) }
 
         it 'does not subscribe to SNS' do
-          subject.subscribe(&block)
-          expect(mock_sqs).to_not have_received(:receive_message).with(queue, any_args)
+          subject.subscribe(&block) rescue nil
+          expect(mock_poller).to_not have_received(:poll)
         end
 
-        it 'logs a warning' do
-          subject.subscribe(&block)
-          expect(logger).to have_received(:warn).with('Circuitry unable to subscribe: AWS configuration is not set.')
+        it 'raises an error' do
+          expect { subject.subscribe(&block) }.to raise_error(Circuitry::SubscribeError)
         end
       end
     end

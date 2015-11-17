@@ -39,6 +39,8 @@ Circuitry.config do |c|
   c.lock_strategy = Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
   c.publish_async_strategy = :batch
   c.subscribe_async_strategy = :thread
+  c.on_thread_exit = proc { Mongoid.disconnect_sessions }
+  c.on_fork_exit = proc { Mongoid.disconnect_sessions }
 end
 ```
 
@@ -73,6 +75,14 @@ Available configuration options include:
     queue.
   * `:thread`: Creates a new thread that immediately sends begins querying the
     queue.
+* `on_thread_exit`: An object that responds to `call`.  This is useful for
+  managing shared resources such as database connections that require closing.
+  It is only called when implementing the `:thread` async strategy.  *(optional,
+  default: `nil`)*
+* `on_fork_exit`: An object that responds to `call`.  This is useful for
+  managing shared resources such as database connections that require closing,
+  It is only called when implementing the `:fork` async strategy.  *(optional,
+  default: `nil`)*
 
 ### Publishing
 
@@ -287,13 +297,18 @@ a new `Redis` object.
 Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
 ```
 
-The second way is to pass in a `:client` option that specifies the redis client
-itself.  This is useful for more advanced usage such as sharing an existing redis
-connection, utilizing [Redis::Namespace](https://github.com/resque/redis-namespace),
-or utilizing [hiredis](https://github.com/redis/hiredis-rb).
+The second way is to pass in a `:client` option that specifies either the redis
+client itself or a [ConnectionPool](https://github.com/mperham/connection_pool)
+of redis clients.  This is useful for more advanced usage such as sharing an
+existing redis connection, connection pooling, utilizing
+[Redis::Namespace](https://github.com/resque/redis-namespace), or utilizing
+[hiredis](https://github.com/redis/hiredis-rb).
 
 ```ruby
 client = Redis.new(url: 'redis://localhost:6379')
+Circuitry::Locks::Redis.new(client: client)
+
+client = ConnectionPool.new(size: 5) { Redis.new }
 Circuitry::Locks::Redis.new(client: client)
 ```
 
@@ -395,6 +410,7 @@ and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 1. Fork it ( https://github.com/kapost/circuitry/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
+3. Update the changelog
+4. Commit your changes (`git commit -am 'Add some feature'`)
+5. Push to the branch (`git push origin my-new-feature`)
+6. Create a new Pull Request

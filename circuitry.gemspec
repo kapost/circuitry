@@ -19,11 +19,13 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'fog-aws', '~> 0.4'
+  spec.add_dependency 'aws-sdk', '~> 2'
+  spec.add_dependency 'retries', '~> 0.0.5'
   spec.add_dependency 'virtus', '~> 1.0'
 
   spec.add_development_dependency 'bundler', '~> 1.8'
   spec.add_development_dependency 'codeclimate-test-reporter'
+  spec.add_development_dependency 'connection_pool'
   spec.add_development_dependency 'dalli'
   spec.add_development_dependency 'memcache_mock'
   spec.add_development_dependency 'mock_redis'

@@ -39,13 +39,13 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       describe 'when AWS credentials are set' do
         before do
-          allow(subject).to receive(:can_publish?).and_return(true)
+          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
         end
 
         shared_examples_for 'a valid publish request' do
           it 'publishes to SNS' do
             subject.publish(topic_name, object)
-            expect(mock_sns).to have_received(:publish).with(topic.arn, object.to_json)
+            expect(mock_sns).to have_received(:publish).with(topic_arn: topic.arn, message: object.to_json)
           end
         end
 
@@ -78,20 +78,16 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(subject).to receive(:can_publish?).and_return(false)
-          allow(subject).to receive(:logger).and_return(logger)
+          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
         end
 
-        let(:logger) { double('Logger', warn: true) }
-
         it 'does not publish to SNS' do
-          subject.publish(topic_name, object)
-          expect(mock_sns).to_not have_received(:publish).with(topic.arn, object.to_json)
+          subject.publish(topic_name, object) rescue nil
+          expect(mock_sns).to_not have_received(:publish).with(topic_arn: topic.arn, message: object.to_json)
         end
 
         it 'logs a warning' do
-          subject.publish(topic_name, object)
-          expect(logger).to have_received(:warn).with('Circuitry unable to publish: AWS configuration is not set.')
+          expect { subject.publish(topic_name, object) }.to raise_error(Circuitry::PublishError)
         end
       end
     end
