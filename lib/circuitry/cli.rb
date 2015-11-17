@@ -1,5 +1,5 @@
-require 'circuitry/queue'
-require 'circuitry/topic'
+require 'circuitry/queue_creator'
+require 'circuitry/topic_creator'
 require 'thor'
 
 module Circuitry
@@ -75,7 +75,7 @@ module Circuitry
       queue = nil
 
       if name
-        queue = Queue.create(options[:failure_queue])
+        queue = QueueCreator.find_or_create(options[:failure_queue])
         say "Created failure queue #{queue.name} with ARN #{queue.arn}"
       end
 
@@ -83,15 +83,16 @@ module Circuitry
     end
 
     def create_queue(name, failure_queue, retries: 20)
-      queue = Queue.create(name)
-      queue.policy = queue_policy(queue)
-      queue.redrive_policy = redrive_policy(failure_queue, retries) if failure_queue
+      attributes = { 'Policy' => queue_policy(queue) }
+      attributes.merge!('RedrivePolicy' => redrive_policy(failure_queue, retries)) if failure_queue
+
+      queue = QueueCreator.find_or_create(name, attributes)
       say "Created queue #{queue.name} with ARN #{queue.arn}"
       queue
     end
 
     def create_subscribed_topic(name, queue)
-      topic = Topic.create(name)
+      topic = TopicCreator.find_or_create(name)
       say "Created topic #{topic.name} with ARN #{topic.arn}"
 
       topic.subscribe(queue)

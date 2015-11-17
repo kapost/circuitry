@@ -15,7 +15,7 @@ module Circuitry
     end
 
     def subscribe(queue)
-      sns.subscribe(arn, queue.arn, 'sqs').body['SubscriptionArn']
+      sns.subscribe(topic_arn: arn, endpoint: queue.arn, protocol: 'sqs').subscription_arn
     end
 
     def ==(obj)
@@ -24,14 +24,6 @@ module Circuitry
 
     def hash
       [self.class, arn].hash
-    end
-
-    class << self
-      include Services::SNS
-
-      def create(name)
-        new(sns.create_topic(name).body['TopicArn'])
-      end
     end
   end
 end
