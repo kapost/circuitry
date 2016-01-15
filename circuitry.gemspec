@@ -22,7 +22,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'aws-sdk', '~> 2'
   spec.add_dependency 'retries', '~> 0.0.5'
   spec.add_dependency 'virtus', '~> 1.0'
-  s.add_dependency "rails", "~> 4.2.5"
 
   spec.add_development_dependency 'bundler', '~> 1.8'
   spec.add_development_dependency 'codeclimate-test-reporter'
