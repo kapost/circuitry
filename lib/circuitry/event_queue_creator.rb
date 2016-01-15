@@ -60,10 +60,10 @@ module Circuitry
     end
 
     def topic_arn(topic)
-      t = topics.detect { |t| t.topic_arn.split(":").last == topic }
-      raise "no topic to subscribe: #{topic.inspect}" if t.nil?
-
-      t.topic_arn
+      # The best way to discover the topic name is to try and create it. If it
+      # exists, we'll get the same topic back.
+      topic = sns.create_topic(name: topic)
+      topic.topic_arn
     end
 
     def topics
