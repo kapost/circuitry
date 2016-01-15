@@ -24,7 +24,7 @@ module Circuitry
     Publisher.new(options).publish(topic_name, object)
   end
 
-  def self.subscribe(queue, options = {}, &block)
+  def self.subscribe(queue = subscriber_queue_name, options = {}, &block)
     Subscriber.new(queue, options).subscribe(&block)
   end
 
@@ -34,3 +34,5 @@ module Circuitry
     end
   end
 end
+
+require 'circuitry/engine' if defined?(Rails)
