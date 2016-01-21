@@ -30,9 +30,11 @@ RSpec.describe Circuitry::Publisher, type: :model do
       let(:topic_name) { 'topic' }
       let(:object) { double('Object', to_json: '{"foo":"bar"}') }
       let(:topic) { double('Topic', arn: 'arn:aws:sns:us-east-1:123456789012:some-topic-name') }
+      let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
       let(:mock_sns) { double('SNS', publish: true) }
 
       before do
+        allow(Circuitry.config).to receive(:logger).and_return(logger)
         allow(Circuitry::TopicCreator).to receive(:find_or_create).with(topic_name).and_return(topic)
         allow(subject).to receive(:sns).and_return(mock_sns)
       end
