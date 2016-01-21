@@ -32,6 +32,8 @@ module Circuitry
 
       process = -> do
         Timeout.timeout(timeout) do
+          logger.info("Publishing message to #{topic_name}")
+
           topic = TopicCreator.find_or_create(topic_name)
           sns.publish(topic_arn: topic.arn, message: object.to_json)
         end
