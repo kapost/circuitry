@@ -1,3 +1,7 @@
+## Circuitry 1.4.1 (Jan 21, 2016)
+
+* Added publisher logging. *Matt Huggins*
+
 ## Circuitry 1.4.0 (Nov 15, 2015)
 
 * Replace [fog-aws](https://github.com/fog/fog-aws) with
