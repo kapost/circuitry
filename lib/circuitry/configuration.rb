@@ -5,6 +5,10 @@ module Circuitry
   class Configuration
     include Virtus::Model
 
+    attribute :application_name, String
+    attribute :queue_prefix, String
+    attribute :subscribed_topics, Array[String]
+
     attribute :access_key, String
     attribute :secret_key, String
     attribute :region, String, default: 'us-east-1'
@@ -24,6 +28,14 @@ module Circuitry
     def subscribe_async_strategy=(value)
       validate(value, Subscriber.async_strategies)
       super
+    end
+
+    def subscriber_queue_name
+      [
+        application_name,
+        queue_prefix,
+        "events"
+      ].join('-')
     end
 
     def aws_options

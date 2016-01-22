@@ -1,4 +1,5 @@
-require 'circuitry/version'
+require 'circuitry/cli'
+require 'circuitry/configuration'
 require 'circuitry/locks/base'
 require 'circuitry/locks/memcache'
 require 'circuitry/locks/memory'
@@ -8,9 +9,9 @@ require 'circuitry/processor'
 require 'circuitry/processors/batcher'
 require 'circuitry/processors/forker'
 require 'circuitry/processors/threader'
-require 'circuitry/configuration'
 require 'circuitry/publisher'
 require 'circuitry/subscriber'
+require 'circuitry/version'
 
 module Circuitry
   def self.config(&block)
@@ -23,7 +24,7 @@ module Circuitry
     Publisher.new(options).publish(topic_name, object)
   end
 
-  def self.subscribe(queue, options = {}, &block)
+  def self.subscribe(queue = subscriber_queue_name, options = {}, &block)
     Subscriber.new(queue, options).subscribe(&block)
   end
 
@@ -33,3 +34,5 @@ module Circuitry
     end
   end
 end
+
+require 'circuitry/engine' if defined?(Rails)

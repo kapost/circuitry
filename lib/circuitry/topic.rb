@@ -1,5 +1,9 @@
+require 'circuitry/services/sns'
+
 module Circuitry
   class Topic
+    include Services::SNS
+
     attr_reader :arn
 
     def initialize(arn)
@@ -8,6 +12,10 @@ module Circuitry
 
     def name
       @name ||= arn.split(':').last
+    end
+
+    def subscribe(queue)
+      sns.subscribe(topic_arn: arn, endpoint: queue.arn, protocol: 'sqs').subscription_arn
     end
 
     def ==(obj)
