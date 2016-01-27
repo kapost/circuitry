@@ -16,10 +16,10 @@ module Circuitry
     end
 
     def topic
-      return @topic if defined?(@topic)
+      return @_topic if defined?(@_topic)
 
       response = sns.create_topic(name: topic_name)
-      @topic = Topic.new(response.topic_arn)
+      @_topic = Topic.new(response.topic_arn)
     end
   end
 end

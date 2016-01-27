@@ -1,4 +1,4 @@
-require 'circuitry/version'
+require 'circuitry/configuration'
 require 'circuitry/locks/base'
 require 'circuitry/locks/memcache'
 require 'circuitry/locks/memory'
@@ -11,6 +11,7 @@ require 'circuitry/processors/threader'
 require 'circuitry/configuration'
 require 'circuitry/publisher'
 require 'circuitry/subscriber'
+require 'circuitry/version'
 
 module Circuitry
   def self.config(&block)
@@ -23,8 +24,8 @@ module Circuitry
     Publisher.new(options).publish(topic_name, object)
   end
 
-  def self.subscribe(queue, options = {}, &block)
-    Subscriber.new(queue, options).subscribe(&block)
+  def self.subscribe(options = {}, &block)
+    Subscriber.new(options).subscribe(&block)
   end
 
   def self.flush

@@ -44,6 +44,26 @@ RSpec.describe Circuitry::Configuration, type: :model do
     it_behaves_like 'a validated setting', Circuitry::Subscriber.async_strategies, :subscribe_async_strategy
   end
 
+  describe '#subscriber_queue_name' do
+    it 'sets #subscriber_dead_letter_queue_name' do
+      expect {
+        subject.subscriber_queue_name = 'awesome'
+      }.to change(subject, :subscriber_dead_letter_queue_name).to('awesome-failures')
+    end
+
+    context 'subscriber_dead_letter_queue_name is set' do
+      before do
+        subject.subscriber_dead_letter_queue_name = 'dawson'
+      end
+
+      it 'does not set #subscriber_dead_letter_queue_name' do
+        expect {
+          subject.subscriber_queue_name = 'awesome'
+        }.to_not change(subject, :subscriber_dead_letter_queue_name)
+      end
+    end
+  end
+
   describe '#aws_options' do
     before do
       subject.access_key = 'access_key'

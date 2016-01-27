@@ -29,11 +29,11 @@ module Circuitry
 
       def async=(value)
         value = case value
-          when false, nil then false
-          when true then self.class.default_async_strategy
-          when *self.class.async_strategies then value
-          else raise ArgumentError, "Invalid value `#{value.inspect}`, must be one of #{[true, false].concat(self.class.async_strategies).inspect}"
-        end
+                when false, nil then false
+                when true then self.class.default_async_strategy
+                when *self.class.async_strategies then value
+                else raise ArgumentError, async_value_error(value)
+                end
 
         if value == :fork && !platform_supports_forking?
           raise NotSupportedError, 'Your platform does not support forking'
@@ -43,10 +43,15 @@ module Circuitry
       end
 
       def async?
-        !!async
+        ![nil, false].include?(async)
       end
 
       private
+
+      def async_value_error(value)
+        options = [true, false].concat(self.class.async_strategies).inspect
+        "Invalid value `#{value.inspect}`, must be one of #{options}"
+      end
 
       def platform_supports_forking?
         Process.respond_to?(:fork)

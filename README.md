@@ -1,17 +1,21 @@
 # Circuitry
 
-Notification pub/sub and message queue processing using Amazon
-[SNS](http://aws.amazon.com/sns/) & [SQS](http://aws.amazon.com/sqs/).
+[![Code Climate](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/gpa.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/feed) [![Test Coverage](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/coverage.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/coverage)
 
-[![Code Climate](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/gpa.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/feed)
-[![Test Coverage](https://codeclimate.com/repos/55720235e30ba0148f003033/badges/697cd6b997cc25e808f3/coverage.svg)](https://codeclimate.com/repos/55720235e30ba0148f003033/coverage)
+Decouple ruby applications using [SNS](http://aws.amazon.com/sns/) fanout with [SQS](http://aws.amazon.com/sqs/) processing.
+
+A Circuitry publisher application can broadcast events which can be fanned out to any number of SQS queues. This technique is a [common approach](http://docs.aws.amazon.com/sns/latest/dg/SNS_Scenarios.html) to implementing an enterprise message bus. For example, applications which care about billing or new user onboarding can react when a user signs up, without the origin web application being concerned with those domains. In this way, new capabilities can be connected to an enterprise system without change proliferation.
+
+## How is Circuitry different from Shoryuken?
+
+[Shoryuken](https://github.com/phstc/shoryuken) is a way to leverage SQS to execute workloads later within the same application. Circuitry is a way to execute any number of workloads in different applications after an event has taken place.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'circuitry'
+gem 'circuitry', '~>2.0.0'
 ```
 
 And then execute:
@@ -47,48 +51,71 @@ end
 Available configuration options include:
 
 * `access_key`: The AWS access key ID that has access to SNS publishing and/or
-  SQS subscribing.  *(required)*
+  SQS subscribing. *(required)*
 * `secret_key`: The AWS secret access key that has access to SNS publishing
-  and/or SQS subscribing.  *(required)*
+  and/or SQS subscribing. *(required)*
 * `region`: The AWS region that your SNS and/or SQS account lives in.
   *(optional, default: "us-east-1")*
 * `logger`: The logger to use for informational output, warnings, and error
-  messages.  *(optional, default: `Logger.new(STDOUT)`)*
+  messages. *(optional, default: `Logger.new(STDOUT)`)*
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
 * `lock_strategy` - The store used to ensure that no duplicate messages are
-  processed.  Please refer to the [Lock Strategies](#lock-strategies) section for
-  more details regarding this option.  *(default: `Circuitry::Locks::Memory.new`)*
+  processed. Please refer to the [Lock Strategies](#lock-strategies) section for
+  more details regarding this option. *(default: `Circuitry::Locks::Memory.new`)*
 * `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
-  determines how asynchronous publish requests are processed.  *(optional,
+  determines how asynchronous publish requests are processed. *(optional,
   default: `:fork`)*
   * `:fork`: Forks a detached child process that immediately sends the request.
-  * `:thread`: Creates a new thread that immediately sends the request.  Because
+  * `:thread`: Creates a new thread that immediately sends the request. Because
     threads are not guaranteed to complete when the process exits, completion can
     be ensured by calling `Circuitry.flush`.
-  * `:batch`: Stores the request in memory to be submitted later.  Batched
+  * `:batch`: Stores the request in memory to be submitted later. Batched
     requests must be manually sent by calling `Circuitry.flush`.
 * `subscribe_async_strategy`: One of `:fork` or `:thread` that determines how
-  asynchronous subscribe requests are processed.  *(optional, default: `:fork`)*
+  asynchronous subscribe requests are processed. *(optional, default: `:fork`)*
   * `:fork`: Forks a detached child process that immediately begins querying the
     queue.
   * `:thread`: Creates a new thread that immediately sends begins querying the
     queue.
-* `on_thread_exit`: An object that responds to `call`.  This is useful for
+* `on_thread_exit`: An object that responds to `call`. This is useful for
   managing shared resources such as database connections that require closing.
-  It is only called when implementing the `:thread` async strategy.  *(optional,
+  It is only called when implementing the `:thread` async strategy. *(optional,
   default: `nil`)*
-* `on_fork_exit`: An object that responds to `call`.  This is useful for
+* `on_fork_exit`: An object that responds to `call`. This is useful for
   managing shared resources such as database connections that require closing,
-  It is only called when implementing the `:fork` async strategy.  *(optional,
+  It is only called when implementing the `:fork` async strategy. *(optional,
   default: `nil`)*
+* `subscriber_queue_name`: The name of the SQS queue that your subscriber application
+  will listen to. This queue will be created or configured during `rake circuitry:setup`
+  *(optional, default: `nil`)*
+* `subscriber_dead_letter_queue_name`: The name of the SQS dead letter queue that will be
+  used after all retries fail. This queue will be created and configured during `rake
+  circuitry:setup` *(optional, default: `<subscriber_queue_name>-failures`)*
+* `publisher_topic_names`: An array of topic names that your publishing application will
+  publish on. This configuration is only used during provisioning via `rake circuitry:setup`
+
+### Provisioning
+
+You can automatically provision SQS queues, SNS topics, and the subscriptions between them using two methods: the circuitry CLI or the `rake circuitry:setup` task. The rake task will provision the subscriber queue and publishing topics that are configured within your application.
+
+```ruby
+Circuitry.config do |c|
+  c.subscriber_queue_name = 'myapp-production-events'
+  c.publisher_topic_names = ['theirapp-production-stuff-created', 'theirapp-production-stuff-deleted']
+end
+```
+
+When provisioning, a dead letter queue is also created using the name "<queue_name>-failures" and a redrive policy of 8 retries to that dead letter queue is configured. You can customize the dead letter queue name in your configuration.
+
+Run `ruby bin/circuitry help provision` for help using CLI provisioning.
 
 ### Publishing
 
-Publishing is done via the `Circuitry.publish` method.  It accepts a topic name
+Publishing is done via the `Circuitry.publish` method. It accepts a topic name
 that represents the SNS topic along with any non-nil object, representing the
-data to be serialized.  Whatever object is called will have its `to_json` method
+data to be serialized. Whatever object is called will have its `to_json` method
 called for serialization.
 
 ```ruby
@@ -99,13 +126,13 @@ Circuitry.publish('any-topic-name', obj)
 The `publish` method also accepts options that impact instantiation of the
 `Publisher` object, which currently includes the following options.
 
-* `:async` - Whether or not publishing should occur in the background.  Accepts
-  one of `:fork`, `:thread`, `:batch`, `true`, or `false`.  Passing `true` uses
-  the `publish_async_strategy` value from the gem configuration.  Please refer to
+* `:async` - Whether or not publishing should occur in the background. Accepts
+  one of `:fork`, `:thread`, `:batch`, `true`, or `false`. Passing `true` uses
+  the `publish_async_strategy` value from the gem configuration. Please refer to
   the [Asynchronous Support](#asynchronous-support) section for more details
-  regarding this option.  *(default: `false`)*
+  regarding this option. *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that publishing a message
-  will be attempted before giving up.  If the timeout is exceeded, an exception
+  will be attempted before giving up. If the timeout is exceeded, an exception
   will raised to be handled by your application or `error_handler`. *(default:
   15)*
 
@@ -125,12 +152,11 @@ publisher.publish('my-topic-name', obj)
 
 ### Subscribing
 
-Subscribing is done via the `Circuitry.subscribe` method.  It accepts an SQS queue
-URL and takes a block for processing each message.  This method **indefinitely
+Subscribing is done via the `Circuitry.subscribe` method. It accepts a block for processing each message. This method **indefinitely
 blocks**, processing messages as they are enqueued.
 
 ```ruby
-Circuitry.subscribe('https://sqs.REGION.amazonaws.com/ACCOUNT-ID/QUEUE-NAME') do |message, topic_name|
+Circuitry.subscribe do |message, topic_name|
   puts "Received #{topic_name} message: #{message.inspect}"
 end
 ```
@@ -140,23 +166,23 @@ The `subscribe` method also accepts options that impact instantiation of the
 
 * `:lock` - The strategy used to ensure that no duplicate messages are processed.
   Accepts `true`, `false`, or an instance of a class inheriting from
-  `Circuitry::Locks::Base`.  Passing `true` uses the `lock_strategy` value from
-  the gem configuration.  Passing `false` uses the [NOOP](#NOOP) strategy. Please
+  `Circuitry::Locks::Base`. Passing `true` uses the `lock_strategy` value from
+  the gem configuration. Passing `false` uses the [NOOP](#NOOP) strategy. Please
   refer to the [Lock Strategies](#lock-strategies) section for more details
-  regarding this option.  *(default: `true`)*
-* `:async` - Whether or not subscribing should occur in the background.  Accepts
-  one of `:fork`, `:thread`, `true`, or `false`.  Passing `true` uses the
-  `subscribe_async_strategy` value from the gem configuration.  Passing an
-  asynchronous value will cause messages to be handled concurrently.  Please
+  regarding this option. *(default: `true`)*
+* `:async` - Whether or not subscribing should occur in the background. Accepts
+  one of `:fork`, `:thread`, `true`, or `false`. Passing `true` uses the
+  `subscribe_async_strategy` value from the gem configuration. Passing an
+  asynchronous value will cause messages to be handled concurrently. Please
   refer to the [Asynchronous Support](#asynchronous-support) section for more
-  details regarding this option.  *(default: `false`)*
+  details regarding this option. *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that processing a message
-  will be attempted before giving up.  If the timeout is exceeded, an exception
-  will raised to be handled by your application or `error_handler`.  *(default:
+  will be attempted before giving up. If the timeout is exceeded, an exception
+  will raised to be handled by your application or `error_handler`. *(default:
   15)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
-  SQS.  Anything above 0 results in long-polling, while 0 results in
-  short-polling.  *(default: 10)*
+  SQS. Anything above 0 results in long-polling, while 0 results in
+  short-polling. *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   *(default: 10)*
 
@@ -193,7 +219,7 @@ batching) while subscribing supports two (forking and threading).
 #### Forking
 
 When forking a child process, that child is detached so that your application
-does not need to worry about waiting for the process to finish.  Forked requests
+does not need to worry about waiting for the process to finish. Forked requests
 begin processing immediately and do not have any overhead in terms of waiting for
 them to complete.
 
@@ -205,9 +231,9 @@ asynchronous support:
    asynchronous strategy in such circumstances.
 
 2. Forking results in resources being copied from the parent process to the child
-   process.  In order to prevent database connection errors and the like, you
+   process. In order to prevent database connection errors and the like, you
    should properly handle closing and reopening resources before and after
-   forking, respectively.  For example, if you are using Rails with Unicorn, you
+   forking, respectively. For example, if you are using Rails with Unicorn, you
    may need to add the following code to your `unicorn.rb` configuration:
 
         before_fork do |server, worker|
@@ -229,14 +255,14 @@ asynchronous support:
 
 #### Threading
 
-Threaded publish and subscribe requests begin processing immediately.  Unlike
+Threaded publish and subscribe requests begin processing immediately. Unlike
 forking, it's up to you to ensure that all threads complete before your
-application exits.  This can be done by calling `Circuitry.flush`.
+application exits. This can be done by calling `Circuitry.flush`.
 
 #### Batching
 
 Batched publish and subscribe requests are queued in memory and do not begin
-processing until you explicit flush them.  This can be done by calling
+processing until you explicit flush them. This can be done by calling
 `Circuitry.flush`.
 
 ### Lock Strategies
@@ -263,7 +289,7 @@ complete), while the hard lock has a default TTL of 24 hours (based upon
 [a suggestion by an AWS employee](https://forums.aws.amazon.com/thread.jspa?threadID=140782#507605)).
 The soft and hard TTL values can be changed by passing a `:soft_ttl` or
 `:hard_ttl` value to the lock initializer, representing the number of seconds
-that a lock should persist.  For example:
+that a lock should persist. For example:
 
 ```ruby
 Circuitry.config.lock_strategy = Circuitry::Locks::Memory.new(
@@ -275,8 +301,8 @@ Circuitry.config.lock_strategy = Circuitry::Locks::Memory.new(
 #### Memory
 
 If not specified in your circuitry configuration, the memory store will be used
-by default.  This lock strategy is provided as the lowest barrier to entry given
-that it has no third-party dependencies.  It should be avoided if running
+by default. This lock strategy is provided as the lowest barrier to entry given
+that it has no third-party dependencies. It should be avoided if running
 multiple subscriber processes or if expecting a high throughput that would result
 in a large amount of memory consumption.
 
@@ -289,7 +315,7 @@ Circuitry::Locks::Memory.new
 Using the redis lock strategy requires that you add `gem 'redis'` to your
 `Gemfile`, as it is not included bundled with the circuitry gem by default.
 
-There are two ways to use the redis lock strategy.  The first is to pass your
+There are two ways to use the redis lock strategy. The first is to pass your
 redis connection options to the lock in the same way that you would when building
 a new `Redis` object.
 
@@ -299,7 +325,7 @@ Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
 
 The second way is to pass in a `:client` option that specifies either the redis
 client itself or a [ConnectionPool](https://github.com/mperham/connection_pool)
-of redis clients.  This is useful for more advanced usage such as sharing an
+of redis clients. This is useful for more advanced usage such as sharing an
 existing redis connection, connection pooling, utilizing
 [Redis::Namespace](https://github.com/resque/redis-namespace), or utilizing
 [hiredis](https://github.com/redis/hiredis-rb).
@@ -317,9 +343,9 @@ Circuitry::Locks::Redis.new(client: client)
 Using the memcache lock strategy requires that you add `gem 'dalli'` to your
 `Gemfile`, as it is not included bundled with the circuitry gem by default.
 
-There are two ways to use the memcache lock strategy.  The first is to pass your
+There are two ways to use the memcache lock strategy. The first is to pass your
 dalli connection host and options to the lock in the same way that you would when
-building a new `Dalli::Client` object.  The special `host` option will be treated
+building a new `Dalli::Client` object. The special `host` option will be treated
 as the memcache host, just as the first argument to `Dalli::Client`.
 
 ```ruby
@@ -327,7 +353,7 @@ Circuitry::Locks::Memcache.new(host: 'localhost:11211', namespace: '...')
 ```
 
 The second way is to pass in a `:client` option that specifies the dalli client
-itself.  This is useful for sharing an existing memcache connection.
+itself. This is useful for sharing an existing memcache connection.
 
 ```ruby
 client = Dalli::Client.new('localhost:11211', namespace: '...')
@@ -338,23 +364,23 @@ Circuitry::Locks::Memcache.new(client: client)
 
 Using the noop lock strategy permits you to continue to treat SQS as a
 distributed queue in a true sense, meaning that you might receive duplicate
-messages.  Please refer to the Amazon SQS documentation pertaining to the
+messages. Please refer to the Amazon SQS documentation pertaining to the
 [Properties of Distributed Queues](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/DistributedQueues.html).
 
 #### Custom
 
-It's also possible to roll your own lock strategy.  Simply create a class that
+It's also possible to roll your own lock strategy. Simply create a class that
 includes (or module that extends) `Circuitry::Locks::Base` and implements the
 following methods:
 
-* `lock`: Accepts the `key` and `ttl` as parameters.  If the key is already
-  locked, this method must return false.  If the key is not already locked, it
-  must lock the key for `ttl` seconds and return true.  It is important that
+* `lock`: Accepts the `key` and `ttl` as parameters. If the key is already
+  locked, this method must return false. If the key is not already locked, it
+  must lock the key for `ttl` seconds and return true. It is important that
   the check and update are **atomic** in order to ensure the same message isn't
   processed more than once.
-* `lock!`: Accepts the `key` and `ttl` as parameters.  Must lock the key for
+* `lock!`: Accepts the `key` and `ttl` as parameters. Must lock the key for
   `ttl` seconds regardless of whether or not the key was previously locked.
-* `unlock!`: Accepts the `key` as a parameter.  Must unlock (delete) the key if
+* `unlock!`: Accepts the `key` as a parameter. Must unlock (delete) the key if
   it was previously locked.
 
 For example, a database-backed solution might look something like the following:
@@ -408,7 +434,7 @@ and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
-1. Fork it ( https://github.com/kapost/circuitry/fork )
+1. Fork it (https://github.com/kapost/circuitry/fork)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Update the changelog
 4. Commit your changes (`git commit -am 'Add some feature'`)

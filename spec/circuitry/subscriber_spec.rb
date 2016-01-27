@@ -1,31 +1,19 @@
 require 'spec_helper'
 
 RSpec.describe Circuitry::Subscriber, type: :model do
-  subject { described_class.new(queue, options) }
+  subject { described_class.new(options) }
 
   let(:queue) { 'https://sqs.amazon.com/account/queue' }
   let(:options) { {} }
 
   it { is_expected.to be_a Circuitry::Concerns::Async }
 
+  before do
+    allow(Circuitry::QueueCreator).to receive(:find_or_create).and_return(double('Queue', url: queue))
+  end
+
   describe '.new' do
     subject { described_class }
-
-    describe 'when queue is set' do
-      let(:queue) { 'https://sqs.amazon.com/account/queue' }
-
-      it 'does not raise an error' do
-        expect { subject.new(queue) }.to_not raise_error
-      end
-    end
-
-    describe 'when queue is not set' do
-      let(:queue) { nil }
-
-      it 'raises an error' do
-        expect { subject.new(queue) }.to raise_error(ArgumentError)
-      end
-    end
 
     describe 'when lock' do
       subject { described_class }
@@ -34,11 +22,11 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       shared_examples_for 'a valid lock strategy' do |lock_class|
         it 'does not raise an error' do
-          expect { subject.new(queue, options) }.to_not raise_error
+          expect { subject.new(options) }.to_not raise_error
         end
 
         it 'sets the lock strategy' do
-          subscriber = subject.new(queue, options)
+          subscriber = subject.new(options)
           expect(subscriber.lock).to be_a lock_class
         end
       end
@@ -62,7 +50,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         let(:lock) { 'invalid' }
 
         it 'raises an error' do
-          expect { subject.new(queue, options) }.to raise_error(ArgumentError)
+          expect { subject.new(options) }.to raise_error(ArgumentError)
         end
       end
     end

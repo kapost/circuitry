@@ -12,8 +12,8 @@ module Circuitry
     include Services::SNS
 
     DEFAULT_OPTIONS = {
-        async: false,
-        timeout: 15,
+      async: false,
+      timeout: 15
     }.freeze
 
     attr_reader :timeout
@@ -26,23 +26,14 @@ module Circuitry
     end
 
     def publish(topic_name, object)
-      raise ArgumentError.new('topic_name cannot be nil') if topic_name.nil?
-      raise ArgumentError.new('object cannot be nil') if object.nil?
-      raise PublishError.new('AWS configuration is not set') unless can_publish?
-
-      process = -> do
-        Timeout.timeout(timeout) do
-          logger.info("Publishing message to #{topic_name}")
-
-          topic = TopicCreator.find_or_create(topic_name)
-          sns.publish(topic_arn: topic.arn, message: object.to_json)
-        end
-      end
+      raise ArgumentError, 'topic_name cannot be nil' if topic_name.nil?
+      raise ArgumentError, 'object cannot be nil' if object.nil?
+      raise PublishError, 'AWS configuration is not set' unless can_publish?
 
       if async?
-        process_asynchronously(&process)
+        process_asynchronously(& -> { publish_internal(topic_name, object) })
       else
-        process.call
+        publish_internal(topic_name, object)
       end
     end
 
@@ -51,6 +42,17 @@ module Circuitry
     end
 
     protected
+
+    def publish_internal(topic_name, object)
+      # TODO: Don't use ruby timeout.
+      # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
+      Timeout.timeout(timeout) do
+        logger.info("Publishing message to #{topic_name}")
+
+        topic = TopicCreator.find_or_create(topic_name)
+        sns.publish(topic_arn: topic.arn, message: object.to_json)
+      end
+    end
 
     attr_writer :timeout
 
