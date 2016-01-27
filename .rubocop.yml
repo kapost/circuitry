@@ -1,0 +1,16 @@
+Style/HashSyntax:
+  EnforcedStyle: ruby19
+Style/Documentation:
+  Enabled: false
+Metrics/LineLength:
+  Max: 100
+Style/SignalException:
+  Enabled: false
+Style/BlockDelimiters:
+  Enabled: false
+PercentLiteralDelimiters:
+  PreferredDelimiters:
+    '%w': []
+    '%W': []
+    '%i': []
+    '%I': []

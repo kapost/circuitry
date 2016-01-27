@@ -33,14 +33,18 @@ RSpec.describe Circuitry, type: :model do
   end
 
   describe '.subscribe' do
-    it 'delegates to a new subscriber' do
-      subscriber = double('Subscriber', subscribe: true)
-      queue = 'https://sqs.amazon.com/account/queue'
-      block = -> { }
-      options = { foo: 'bar' }
+    let(:subscriber) { double('Subscriber', subscribe: true) }
+    let(:queue) { 'https://sqs.amazon.com/account/queue' }
+    let(:options) { { foo: 'bar' } }
 
-      allow(Circuitry::Subscriber).to receive(:new).with(queue, options).and_return(subscriber)
-      subject.subscribe(queue, options, &block)
+    before do
+      allow(Circuitry::Subscriber).to receive(:new).with(options).and_return(subscriber)
+      allow(Circuitry::QueueCreator).to receive(:find_or_create).and_return(double('Queue', url: queue))
+    end
+
+    it 'delegates to a new subscriber' do
+      block = -> {}
+      subject.subscribe(options, &block)
       expect(subscriber).to have_received(:subscribe).with(no_args, &block)
     end
   end

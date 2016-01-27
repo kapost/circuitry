@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'circuitry'
+require 'circuitry/cli'
+
+Circuitry::CLI.start(ARGV)
