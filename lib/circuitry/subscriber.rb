@@ -119,7 +119,7 @@ module Circuitry
     end
 
     def process_messages_asynchronously(messages, &block)
-      messages.each { |message| process_asynchronously(& -> { process_message(message, &block) }) }
+      messages.each { |message| process_asynchronously { process_message(message, &block) } }
     end
 
     def process_messages_synchronously(messages, &block)
@@ -139,19 +139,23 @@ module Circuitry
 
     def handle_message(message, &block)
       handled = try_with_lock(message.id) do
-        begin
-          # TODO: Don't use ruby timeout.
-          # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
-          Timeout.timeout(timeout) do
-            block.call(message.body, message.topic.name)
-          end
-        rescue => e
-          logger.error("Error handling message #{message.id}: #{e}")
-          raise e
+        middleware.invoke(message.topic.name, message.body) do
+          handle_message_with_timeout(message, &block)
         end
       end
 
       logger.info("Ignoring duplicate message #{message.id}") unless handled
+    end
+
+    # TODO: Don't use ruby timeout.
+    # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
+    def handle_message_with_timeout(message, &block)
+      Timeout.timeout(timeout) do
+        block.call(message.body, message.topic.name)
+      end
+    rescue => e
+      logger.error("Error handling message #{message.id}: #{e}")
+      raise e
     end
 
     def try_with_lock(handle)
@@ -187,6 +191,10 @@ module Circuitry
       Circuitry.config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
+    end
+
+    def middleware
+      Circuitry.config.subscriber_middleware
     end
   end
 end

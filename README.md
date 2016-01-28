@@ -87,18 +87,26 @@ Available configuration options include:
   managing shared resources such as database connections that require closing,
   It is only called when implementing the `:fork` async strategy. *(optional,
   default: `nil`)*
+* `publisher_topic_names`: An array of topic names that your publishing application will
+  publish on. This configuration is only used during provisioning via `rake circuitry:setup`
 * `subscriber_queue_name`: The name of the SQS queue that your subscriber application
   will listen to. This queue will be created or configured during `rake circuitry:setup`
   *(optional, default: `nil`)*
 * `subscriber_dead_letter_queue_name`: The name of the SQS dead letter queue that will be
   used after all retries fail. This queue will be created and configured during `rake
   circuitry:setup` *(optional, default: `<subscriber_queue_name>-failures`)*
-* `publisher_topic_names`: An array of topic names that your publishing application will
-  publish on. This configuration is only used during provisioning via `rake circuitry:setup`
+* `publisher_middleware`: A chain of middleware that sent messages must go through.
+  Please refer to the [Middleware](#middleware) section for more details regarding this
+  option.
+* `subscriber_middleware`: A chain of middleware that received messages must go through.
+  Please refer to the [Middleware](#middleware) section for more details regarding this
+  option.
 
 ### Provisioning
 
-You can automatically provision SQS queues, SNS topics, and the subscriptions between them using two methods: the circuitry CLI or the `rake circuitry:setup` task. The rake task will provision the subscriber queue and publishing topics that are configured within your application.
+You can automatically provision SQS queues, SNS topics, and the subscriptions between them using
+two methods: the circuitry CLI or the `rake circuitry:setup` task. The rake task will provision the
+subscriber queue and publishing topics that are configured within your application.
 
 ```ruby
 Circuitry.config do |c|
@@ -107,7 +115,9 @@ Circuitry.config do |c|
 end
 ```
 
-When provisioning, a dead letter queue is also created using the name "<queue_name>-failures" and a redrive policy of 8 retries to that dead letter queue is configured. You can customize the dead letter queue name in your configuration.
+When provisioning, a dead letter queue is also created using the name "<queue_name>-failures" and a
+redrive policy of 8 retries to that dead letter queue is configured. You can customize the dead
+letter queue name in your configuration.
 
 Run `ruby bin/circuitry help provision` for help using CLI provisioning.
 
@@ -152,8 +162,8 @@ publisher.publish('my-topic-name', obj)
 
 ### Subscribing
 
-Subscribing is done via the `Circuitry.subscribe` method. It accepts a block for processing each message. This method **indefinitely
-blocks**, processing messages as they are enqueued.
+Subscribing is done via the `Circuitry.subscribe` method. It accepts a block for processing each
+message. This method **indefinitely blocks**, processing messages as they are enqueued.
 
 ```ruby
 Circuitry.subscribe do |message, topic_name|
@@ -421,6 +431,80 @@ pass your lock instance to the configuration as the `:lock_strategy`.
 connection = PG.connect(...)
 Circuitry.config.lock_strategy = DatabaseLockStrategy.new(connection: connection)
 ```
+
+### Middleware
+
+Circuitry middleware can be used to perform additional processing around a message
+being sent by a publisher or received by a subscriber.  Some examples of processing
+that belong here are monitoring or encryption specific to your application.
+
+Middleware can be added to the publisher, the subscriber, or both.  A middleware
+class is defined by an (optional) `#initialize` method that accepts any number of
+arguments, as well as a `#call` method that accepts the `topic` string, `message`
+string, and a block for continuing processing.
+
+For example, a simple logging middleware might look something like the following:
+
+```ruby
+class LoggerMiddleware
+  attr_reader :namespace, :logger
+
+  def initialize(namespace:, logger: Logger.new(STDOUT))
+    self.namespace = namespace
+    self.logger = logger
+  end
+  
+  def call(topic, message)
+    logger.info("#{namespace} (start): #{topic} - #{message}")
+    yield
+  ensure
+    logger.info("#{namespace} (done): #{topic} - #{message}")
+  end
+
+  private
+
+  attr_writer :namespace, :logger
+end
+```
+
+Adding the middleware to the stack happens through the Circuitry config.
+
+```ruby
+Circuitry.config do |config|
+  # single-line format
+  circuitry.publisher_middleware.add LoggerMiddleware, namespace: 'publisher'
+  circuitry.subscriber_middleware.add LoggerMiddleware, namespace: 'subscriber', logger: Rails.logger
+
+  # block format
+  circuitry.publisher_middleware do |chain|
+    chain.add LoggerMiddleware, namespace: 'publisher'
+  end
+
+  circuitry.subscriber_middleware do |chain|
+    chain.add LoggerMiddleware, namespace: 'subscriber', logger: Rails.logger
+  end
+end
+```
+
+Both `publisher_middleware` and `subscriber_middleware` respond to a handful of methods that can be
+used for configuring your middleware:
+
+* `#add`: Appends a middleware class to the end of the chain.  If the class already exists, it is
+  replaced.
+  * `middleware.add NewMiddleware, arg1, arg2, ...`
+* `#prepend`: Prepends a middleware class to the beginning of the chain.  If the class already
+  exists, it is replaced.
+  * `middleware.prepend NewMiddleware, arg1, arg2, ...`
+* `#remove`: Removes a middleware class from anywhere in the chain.
+  * `middleware.remove NewMiddleware`
+* `#insert_before`: Injects a middleware class before another middleware class in the chain.  If
+  the other class does not exist in the chain, this behaves the same as `#prepend`.
+  * `middleware.insert_before ExistingMiddleware, NewMiddleware, arg1, arg2...`
+* `#insert_after`: Injects a middleware class after another middleware class in the chain.  If the
+  other class does not exist in the chain, this behaves the same as `#add`.
+  * `middleware.insert_after ExistingMiddleware, NewMiddleware, arg1, arg2...`
+* `#clear`: Removes all middleware classes from the chain.
+  * `middleware.clear`
 
 ## Development
 
