@@ -1,3 +1,4 @@
+require 'circuitry/railtie' if defined?(Rails) && Rails::VERSION::MAJOR >= 3
 require 'circuitry/configuration'
 require 'circuitry/locks/base'
 require 'circuitry/locks/memcache'
