@@ -1,9 +1,13 @@
-## Circuitry 2.0.0 (Jan 27, 2016)
+## Circuitry 2.1.0 (Jan 28, 2016)
 
-* Added subscriber_queue_name config *Brandon Croft*
-* Added publisher_topic_names config *Brandon Croft*
-* Added CLI and rake provisioning of queues and topics as defined by config *Brandon Croft*
-* Removed the requirement to provide a SQS URL to the subscriber *Brandon Croft*
+* Added publisher and subscriber middleware. *Matt Huggins*
+
+## Circuitry 2.0.0 (Jan 28, 2016)
+
+* Added subscriber_queue_name config. *Brandon Croft*
+* Added publisher_topic_names config. *Brandon Croft*
+* Added CLI and rake provisioning of queues and topics as defined by config. *Brandon Croft*
+* Removed the requirement to provide a SQS URL to the subscriber. *Brandon Croft*
 
 ## Circuitry 1.4.1 (Jan 21, 2016)
 
