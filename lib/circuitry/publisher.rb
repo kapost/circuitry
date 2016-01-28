@@ -30,10 +30,12 @@ module Circuitry
       raise ArgumentError, 'object cannot be nil' if object.nil?
       raise PublishError, 'AWS configuration is not set' unless can_publish?
 
+      message = object.to_json
+
       if async?
-        process_asynchronously(& -> { publish_internal(topic_name, object) })
+        process_asynchronously { publish_internal(topic_name, message) }
       else
-        publish_internal(topic_name, object)
+        publish_internal(topic_name, message)
       end
     end
 
@@ -43,14 +45,16 @@ module Circuitry
 
     protected
 
-    def publish_internal(topic_name, object)
-      # TODO: Don't use ruby timeout.
-      # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
-      Timeout.timeout(timeout) do
-        logger.info("Publishing message to #{topic_name}")
+    def publish_internal(topic_name, message)
+      middleware.invoke(topic_name, message) do
+        # TODO: Don't use ruby timeout.
+        # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
+        Timeout.timeout(timeout) do
+          logger.info("Publishing message to #{topic_name}")
 
-        topic = TopicCreator.find_or_create(topic_name)
-        sns.publish(topic_arn: topic.arn, message: object.to_json)
+          topic = TopicCreator.find_or_create(topic_name)
+          sns.publish(topic_arn: topic.arn, message: message)
+        end
       end
     end
 
@@ -66,6 +70,10 @@ module Circuitry
       Circuitry.config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
+    end
+
+    def middleware
+      Circuitry.config.publisher_middleware
     end
   end
 end

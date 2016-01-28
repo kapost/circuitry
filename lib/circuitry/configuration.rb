@@ -34,6 +34,18 @@ module Circuitry
       super || "#{subscriber_queue_name}-failures"
     end
 
+    def subscriber_middleware
+      @subscriber_middleware ||= Circuitry::Middleware::Chain.new
+      yield @subscriber_middleware if block_given?
+      @subscriber_middleware
+    end
+
+    def publisher_middleware
+      @publisher_middleware ||= Circuitry::Middleware::Chain.new
+      yield @publisher_middleware if block_given?
+      @publisher_middleware
+    end
+
     def aws_options
       {
         access_key_id:     access_key,
