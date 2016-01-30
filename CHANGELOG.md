@@ -1,3 +1,7 @@
+## Circuitry 2.1.1 (Jan 30, 2016)
+
+* Fixed missing require in subscriber *Brandon Croft*
+
 ## Circuitry 2.1.0 (Jan 28, 2016)
 
 * Added publisher and subscriber middleware. *Matt Huggins*
