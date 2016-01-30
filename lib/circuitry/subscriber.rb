@@ -1,5 +1,6 @@
 require 'retries'
 require 'timeout'
+require 'circuitry/queue_creator'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sqs'
 require 'circuitry/message'
