@@ -5,6 +5,18 @@ RSpec.describe Circuitry::Topic, type: :model do
 
   let(:arn) { 'arn:aws:sqs:us-east-1:123456789012:some-topic-name' }
 
+  describe '.find' do
+    subject { described_class }
+
+    before do
+      allow_any_instance_of(Circuitry::Topic::Finder).to receive(:find).and_return(double('Topic', topic_arn: arn))
+    end
+
+    it 'returns a queue object' do
+      expect(subject.find('queue_name')).to be_instance_of(Circuitry::Topic)
+    end
+  end
+
   describe '#arn' do
     it 'returns the ARN' do
       expect(subject.arn).to eq arn

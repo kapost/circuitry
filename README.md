@@ -89,7 +89,9 @@ Available configuration options include:
   It is only called when implementing the `:fork` async strategy. *(optional,
   default: `nil`)*
 * `publisher_topic_names`: An array of topic names that your publishing application will
-  publish on. This configuration is only used during provisioning via `rake circuitry:setup`
+  publish on. This configuration is used during provisioning via `rake circuitry:setup`
+* `subscriber_topic_names`: An array of topic names that your subscriber application will
+  subscribe to. This configuration is used during provisioning via `rake circuitry:setup`
 * `subscriber_queue_name`: The name of the SQS queue that your subscriber application
   will listen to. This queue will be created or configured during `rake circuitry:setup`
   *(optional, default: `nil`)*
@@ -454,7 +456,7 @@ class LoggerMiddleware
     self.namespace = namespace
     self.logger = logger
   end
-  
+
   def call(topic, message)
     logger.info("#{namespace} (start): #{topic} - #{message}")
     yield

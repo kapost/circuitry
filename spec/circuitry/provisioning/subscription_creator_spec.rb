@@ -7,7 +7,7 @@ RSpec::Matchers.define :policy_statement_count_matcher do |count|
   end
 end
 
-RSpec.describe Circuitry::SubscriptionCreator do
+RSpec.describe Circuitry::Provisioning::SubscriptionCreator do
   describe '.subscribe_all' do
     subject { described_class }
 

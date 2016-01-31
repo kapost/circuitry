@@ -1,9 +1,9 @@
 require 'retries'
 require 'timeout'
-require 'circuitry/queue_creator'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sqs'
 require 'circuitry/message'
+require 'circuitry/queue'
 
 module Circuitry
   class SubscribeError < StandardError; end
@@ -31,7 +31,7 @@ module Circuitry
 
       self.subscribed = false
 
-      self.queue = QueueCreator.find_or_create(Circuitry.config.subscriber_queue_name).url
+      self.queue = Queue.find(Circuitry.config.subscriber_queue_name).url
       %i[lock async timeout wait_time batch_size].each do |sym|
         send(:"#{sym}=", options[sym])
       end

@@ -35,7 +35,7 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       before do
         allow(Circuitry.config).to receive(:logger).and_return(logger)
-        allow(Circuitry::TopicCreator).to receive(:find_or_create).with(topic_name).and_return(topic)
+        allow(Circuitry::Topic).to receive(:find).with(topic_name).and_return(topic)
         allow(subject).to receive(:sns).and_return(mock_sns)
       end
 

@@ -1,15 +1,13 @@
 require 'spec_helper'
 
-require 'circuitry/cli'
-
 RSpec.describe Circuitry::CLI do
   subject { described_class }
 
   describe '#provision' do
     before do
-      allow(Circuitry::QueueCreator).to receive(:find_or_create).and_return(queue)
-      allow(Circuitry::TopicCreator).to receive(:find_or_create).and_return(topic)
-      allow(Circuitry::SubscriptionCreator).to receive(:subscribe_all).and_return(true)
+      allow(Circuitry::Provisioning::QueueCreator).to receive(:find_or_create).and_return(queue)
+      allow(Circuitry::Provisioning::TopicCreator).to receive(:find_or_create).and_return(topic)
+      allow(Circuitry::Provisioning::SubscriptionCreator).to receive(:subscribe_all).and_return(true)
 
       subject.start(command.split)
     end
@@ -21,15 +19,15 @@ RSpec.describe Circuitry::CLI do
       let(:command) { 'provision example -t topic1 topic2' }
 
       it 'creates primary and dead letter queues' do
-        expect(Circuitry::QueueCreator).to have_received(:find_or_create).once.with('example', hash_including(dead_letter_queue_name: 'example-failures'))
+        expect(Circuitry::Provisioning::QueueCreator).to have_received(:find_or_create).once.with('example', hash_including(dead_letter_queue_name: 'example-failures'))
       end
 
       it 'creates each topic' do
-        expect(Circuitry::TopicCreator).to have_received(:find_or_create).twice
+        expect(Circuitry::Provisioning::TopicCreator).to have_received(:find_or_create).twice
       end
 
       it 'subscribes to all topics' do
-        expect(Circuitry::SubscriptionCreator).to have_received(:subscribe_all).once.with(queue, [topic, topic])
+        expect(Circuitry::Provisioning::SubscriptionCreator).to have_received(:subscribe_all).once.with(queue, [topic, topic])
       end
     end
 
@@ -37,7 +35,7 @@ RSpec.describe Circuitry::CLI do
       let(:command) { 'provision' }
 
       it 'does nothing' do
-        expect(Circuitry::QueueCreator).to_not have_received(:find_or_create)
+        expect(Circuitry::Provisioning::QueueCreator).to_not have_received(:find_or_create)
       end
     end
 
@@ -45,11 +43,11 @@ RSpec.describe Circuitry::CLI do
       let(:command) { 'provision example' }
 
       it 'does not create queue' do
-        expect(Circuitry::QueueCreator).to_not have_received(:find_or_create)
+        expect(Circuitry::Provisioning::QueueCreator).to_not have_received(:find_or_create)
       end
 
       it 'does not create topics' do
-        expect(Circuitry::TopicCreator).to_not have_received(:find_or_create)
+        expect(Circuitry::Provisioning::TopicCreator).to_not have_received(:find_or_create)
       end
     end
   end

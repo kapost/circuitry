@@ -8,6 +8,7 @@ module Circuitry
     attribute :subscriber_queue_name, String
     attribute :subscriber_dead_letter_queue_name, String
     attribute :publisher_topic_names, Array[String]
+    attribute :subscriber_topic_names, Array[String]
 
     attribute :access_key, String
     attribute :secret_key, String

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Circuitry::TopicCreator, type: :model do
+RSpec.describe Circuitry::Provisioning::TopicCreator, type: :model do
   describe '.find_or_create' do
     subject { described_class }
 

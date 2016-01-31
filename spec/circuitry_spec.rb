@@ -39,7 +39,7 @@ RSpec.describe Circuitry, type: :model do
 
     before do
       allow(Circuitry::Subscriber).to receive(:new).with(options).and_return(subscriber)
-      allow(Circuitry::QueueCreator).to receive(:find_or_create).and_return(double('Queue', url: queue))
+      allow(Circuitry::Provisioning::QueueCreator).to receive(:find_or_create).and_return(double('Queue', url: queue))
     end
 
     it 'delegates to a new subscriber' do
