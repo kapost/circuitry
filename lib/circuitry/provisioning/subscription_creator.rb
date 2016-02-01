@@ -18,8 +18,8 @@ module Circuitry
         raise ArgumentError, 'queue must be a Circuitry::Queue' unless queue.is_a?(Circuitry::Queue)
         raise ArgumentError, 'topics must be an array' unless topics.is_a?(Array)
 
-        @queue = queue
-        @topics = topics
+        self.queue = queue
+        self.topics = topics
       end
 
       def subscribe_all
@@ -33,6 +33,9 @@ module Circuitry
       end
 
       private
+
+      attr_writer :queue
+      attr_writer :topics
 
       def build_policy
         # The aws ruby SDK doesn't have a policy builder :{

@@ -7,7 +7,7 @@ RSpec.describe Circuitry::Provisioning do
   let(:queue) { Circuitry::Queue.new('my_queue_name') }
   let(:topic) { Circuitry::Topic.new('my_topic_arn') }
 
-  describe '.provision_from_config' do
+  describe '.provision' do
     before do
       config.subscriber_queue_name = 'my_queue_name'
       config.subscriber_topic_names = ['my_topic_name1', 'my_topic_name2']
@@ -17,7 +17,7 @@ RSpec.describe Circuitry::Provisioning do
       allow(Circuitry::Provisioning::TopicCreator).to receive(:find_or_create).and_return(topic)
       allow(Circuitry::Provisioning::SubscriptionCreator).to receive(:subscribe_all).and_return(true)
 
-      subject.provision_from_config(config)
+      subject.provision(config)
     end
 
     it 'creates queues from config' do

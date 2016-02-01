@@ -31,7 +31,7 @@ module Circuitry
       with_custom_config(queue_name) do |config|
         logger = Logger.new(STDOUT)
         logger.level = Logger::INFO if options['verbose']
-        Circuitry::Provisioning.provision_from_config(config, logger: logger)
+        Circuitry::Provisioning.provision(config, logger: logger)
       end
     end
 

@@ -6,7 +6,7 @@ module Circuitry
       include Services::SQS
 
       def initialize(name)
-        @name = name
+        self.name = name
       end
 
       def find
@@ -21,7 +21,7 @@ module Circuitry
     attr_reader :url
 
     def initialize(url)
-      @url = url
+      self.url = url
     end
 
     def self.find(name)
@@ -36,10 +36,12 @@ module Circuitry
       @arn ||= attribute('QueueArn')
     end
 
-    private
-
     def attribute(name)
       sqs.get_queue_attributes(queue_url: url, attribute_names: [name]).attributes[name]
     end
+
+    private
+
+    attr_writer :url
   end
 end

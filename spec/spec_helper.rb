@@ -4,7 +4,6 @@ CodeClimate::TestReporter.start
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'circuitry'
 require 'circuitry/cli'
-require 'circuitry/provisioning'
 require 'rspec/its'
 require 'redis'
 require 'mock_redis'

@@ -13,7 +13,7 @@ module Circuitry
       end
 
       def initialize(topic_name)
-        @topic_name = topic_name
+        self.topic_name = topic_name
       end
 
       def topic
@@ -22,6 +22,10 @@ module Circuitry
         response = sns.create_topic(name: topic_name)
         @_topic = Topic.new(response.topic_arn)
       end
+
+      private
+
+      attr_writer :topic_name
     end
   end
 end
