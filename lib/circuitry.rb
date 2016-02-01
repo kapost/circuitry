@@ -1,5 +1,7 @@
 require 'circuitry/railtie' if defined?(Rails) && Rails::VERSION::MAJOR >= 3
 require 'circuitry/configuration'
+require 'circuitry/config/publisher_settings'
+require 'circuitry/config/subscriber_settings'
 require 'circuitry/locks/base'
 require 'circuitry/locks/memcache'
 require 'circuitry/locks/memory'
@@ -20,7 +22,7 @@ module Circuitry
     block.call(@config) if block_given?
     @config
   end
-
+  
   def self.publish(topic_name, object, options = {})
     Publisher.new(options).publish(topic_name, object)
   end
