@@ -42,7 +42,7 @@ module Circuitry
         {
           'Policy' => {
             'Version'   => '2012-10-17',
-            'Id'        => '#{queue.arn}/SNSPolicy',
+            'Id'        => "#{queue.arn}/SNSPolicy",
             'Statement' => topics.map { |t| build_policy_statement(t) }
           }.to_json
         }

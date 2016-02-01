@@ -6,8 +6,8 @@ RSpec.describe Circuitry::Processors::Batcher, type: :model do
   it { is_expected.to be_a Circuitry::Processor }
 
   describe '.batch' do
-    let(:pool) { double('Array', '<<': []) }
-    let(:block) { ->{ } }
+    let(:pool) { double('Array', '<<' => []) }
+    let(:block) { -> {} }
 
     before do
       allow(subject).to receive(:pool).and_return(pool)
@@ -20,7 +20,7 @@ RSpec.describe Circuitry::Processors::Batcher, type: :model do
   end
 
   describe '.flush' do
-    let(:pool) { [->{ }, ->{ }] }
+    let(:pool) { [-> {}, -> {}] }
 
     before do
       allow(subject).to receive(:pool).and_return(pool)

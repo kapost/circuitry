@@ -29,10 +29,13 @@ Or install it yourself as:
 
 ## Usage
 
-Circuitry is configured via its configuration object.
+Circuitry is configured via its configuration object or via circuitry.yml config.
 
 ```ruby
-Circuitry.config do |c|
+Circuitry.subscriber_config do |c|
+  c.queue_name = "#{Rails.env}-appname"
+  c.dead_letter_queue_name = "#{Rails.env}-appname-failures"
+  c.max_receive_count = 8
   c.access_key = 'YOUR_AWS_ACCESS_KEY'
   c.secret_key = 'YOUR_AWS_SECRET_KEY'
   c.region = 'us-east-1'
@@ -42,14 +45,58 @@ Circuitry.config do |c|
     HoneyBadger.flush
   end
   c.lock_strategy = Circuitry::Locks::Redis.new(url: 'redis://localhost:6379')
-  c.publish_async_strategy = :batch
-  c.subscribe_async_strategy = :thread
-  c.on_thread_exit = proc { Mongoid.disconnect_sessions }
-  c.on_fork_exit = proc { Mongoid.disconnect_sessions }
+  c.async_strategy = :thread
+  c.on_async_exit = proc { Mongoid.disconnect_sessions }
+end
+
+Circuitry.publisher_config do |c|
+  c.access_key = 'YOUR_AWS_ACCESS_KEY'
+  c.secret_key = 'YOUR_AWS_SECRET_KEY'
+  c.region = 'us-east-1'
+  c.logger = Rails.logger
+  c.error_handler = proc do |error|
+    HoneyBadger.notify(error)
+    HoneyBadger.flush
+  end
+  c.async_strategy = :batch
 end
 ```
 
-Available configuration options include:
+Many of the advanced options, such as `error_handler` or `async_strategy` require this initializer-
+style configuration. A simpler option is available via config/circuitry.yml
+(or config/circuitry.yml.erb):
+
+```yml
+---
+access_key: "YOUR_AWS_ACCESS_KEY"
+secret_key: "YOUR_AWS_SECRET_KEY"
+region: "us-east-1"
+
+development:
+  publisher:
+    topic_names:
+      - brandonc-appname-user-create
+      - brandonc-appname-user-destroy
+  subscriber:
+    queue_name: "brandonc-appname"
+    dead_letter_queue_name: "brandonc-appname-failures"
+    topic_names:
+      - brandonc-otherapp-content-create
+      - brandonc-otherapp-content-destroy
+production:
+  publisher:
+    topic_names:
+      - brandonc-appname-user-create
+      - brandonc-appname-user-destroy
+  subscriber:
+    queue_name: "production-appname"
+    dead_letter_queue_name: "production-appname-failures"
+    topic_names:
+      - production-otherapp-content-create
+      - production-otherapp-content-destroy
+```
+
+Available configuration options for *both* subscriber and publisher applications include:
 
 * `access_key`: The AWS access key ID that has access to SNS publishing and/or
   SQS subscribing. *(required)*
@@ -62,10 +109,7 @@ Available configuration options include:
 * `error_handler`: An object that responds to `call` with two arguments: the
   deserialized message contents and the topic name used when publishing to SNS.
   *(optional, default: `nil`)*
-* `lock_strategy` - The store used to ensure that no duplicate messages are
-  processed. Please refer to the [Lock Strategies](#lock-strategies) section for
-  more details regarding this option. *(default: `Circuitry::Locks::Memory.new`)*
-* `publish_async_strategy`: One of `:fork`, `:thread`, or `:batch` that
+* `async_strategy`: One of `:fork`, `:thread`, or `:batch` that
   determines how asynchronous publish requests are processed. *(optional,
   default: `:fork`)*
   * `:fork`: Forks a detached child process that immediately sends the request.
@@ -73,37 +117,35 @@ Available configuration options include:
     threads are not guaranteed to complete when the process exits, completion can
     be ensured by calling `Circuitry.flush`.
   * `:batch`: Stores the request in memory to be submitted later. Batched
-    requests must be manually sent by calling `Circuitry.flush`.
-* `subscribe_async_strategy`: One of `:fork` or `:thread` that determines how
-  asynchronous subscribe requests are processed. *(optional, default: `:fork`)*
-  * `:fork`: Forks a detached child process that immediately begins querying the
-    queue.
-  * `:thread`: Creates a new thread that immediately sends begins querying the
-    queue.
-* `on_thread_exit`: An object that responds to `call`. This is useful for
+    requests must be manually sent by calling `Circuitry.flush`. Only valid as a
+    publishing strategy
+* `on_async_exit`: An object that responds to `call`. This is useful for
   managing shared resources such as database connections that require closing.
-  It is only called when implementing the `:thread` async strategy. *(optional,
-  default: `nil`)*
-* `on_fork_exit`: An object that responds to `call`. This is useful for
-  managing shared resources such as database connections that require closing,
-  It is only called when implementing the `:fork` async strategy. *(optional,
-  default: `nil`)*
-* `publisher_topic_names`: An array of topic names that your publishing application will
-  publish on. This configuration is used during provisioning via `rake circuitry:setup`
-* `subscriber_topic_names`: An array of topic names that your subscriber application will
-  subscribe to. This configuration is used during provisioning via `rake circuitry:setup`
-* `subscriber_queue_name`: The name of the SQS queue that your subscriber application
-  will listen to. This queue will be created or configured during `rake circuitry:setup`
   *(optional, default: `nil`)*
-* `subscriber_dead_letter_queue_name`: The name of the SQS dead letter queue that will be
-  used after all retries fail. This queue will be created and configured during `rake
-  circuitry:setup` *(optional, default: `<subscriber_queue_name>-failures`)*
-* `publisher_middleware`: A chain of middleware that sent messages must go through.
+* `topic_names`: An array of topic names that your application will
+  publish and/or subscribe to. This configuration is only used during provisioning.
+* `middleware`: A chain of middleware that messages must go through when sent or received.
   Please refer to the [Middleware](#middleware) section for more details regarding this
   option.
-* `subscriber_middleware`: A chain of middleware that received messages must go through.
-  Please refer to the [Middleware](#middleware) section for more details regarding this
-  option.
+
+Available configuration options for subscriber applications include:
+
+* `queue_name`: The name of the SQS queue that your subscriber application
+  will listen to. This queue will be created or configured during provisioning.
+* `dead_letter_queue_name`: The name of the SQS dead letter queue that will be
+  used after all retries fail. This configuration value is only used during provisioning.
+  *(optional, default: `<subscriber_queue_name>-failures`)*
+* `lock_strategy` - The store used to ensure that no duplicate messages are
+  processed. Please refer to the [Lock Strategies](#lock-strategies) section for
+  more details regarding this option. *(default: `Circuitry::Locks::Memory.new`)*
+* `max_receive_count` - The number of times a message will be received by the queue after
+  unsuccessful attempts to process it before it is discarded or added to the
+  `dead_letter_queue_name` queue. This configuration value is only used during
+  provisioning. *(optional, default: 8)*
+* `visibility_timeout` - A period of time during which Amazon SQS prevents other subscribers from
+  receiving and processing that message (before it is deleted by circuitry after being processed
+  successfully.) This configuration value is only used during provisioning.
+  *(optional, default: 1800)*
 
 ### Provisioning
 
@@ -112,17 +154,16 @@ two methods: the circuitry CLI or the `rake circuitry:setup` task. The rake task
 subscriber queue and publishing topics that are configured within your application.
 
 ```ruby
-Circuitry.config do |c|
-  c.subscriber_queue_name = 'myapp-production-events'
-  c.publisher_topic_names = ['theirapp-production-stuff-created', 'theirapp-production-stuff-deleted']
+Circuitry.subscriber_config do |c|
+  c.queue_name = 'myapp-production-events'
+  c.topic_names = ['theirapp-production-stuff-created', 'theirapp-production-stuff-deleted']
 end
 ```
 
-When provisioning, a dead letter queue is also created using the name "<queue_name>-failures" and a
-redrive policy of 8 retries to that dead letter queue is configured. You can customize the dead
-letter queue name in your configuration.
+When provisioning, a dead letter queue is also created using the name "<queue_name>-failures". You
+can customize the dead letter queue name in your configuration.
 
-Run `ruby bin/circuitry help provision` for help using CLI provisioning.
+Run `circuitry help provision` for help using CLI provisioning.
 
 ### Publishing
 
@@ -141,7 +182,7 @@ The `publish` method also accepts options that impact instantiation of the
 
 * `:async` - Whether or not publishing should occur in the background. Accepts
   one of `:fork`, `:thread`, `:batch`, `true`, or `false`. Passing `true` uses
-  the `publish_async_strategy` value from the gem configuration. Please refer to
+  the `async_strategy` value from the gem configuration. Please refer to
   the [Asynchronous Support](#asynchronous-support) section for more details
   regarding this option. *(default: `false`)*
 * `:timeout` - The maximum amount of time in seconds that publishing a message
@@ -185,7 +226,7 @@ The `subscribe` method also accepts options that impact instantiation of the
   regarding this option. *(default: `true`)*
 * `:async` - Whether or not subscribing should occur in the background. Accepts
   one of `:fork`, `:thread`, `true`, or `false`. Passing `true` uses the
-  `subscribe_async_strategy` value from the gem configuration. Passing an
+  `async_strategy` value from the gem configuration. Passing an
   asynchronous value will cause messages to be handled concurrently. Please
   refer to the [Asynchronous Support](#asynchronous-support) section for more
   details regarding this option. *(default: `false`)*
@@ -208,7 +249,7 @@ options = {
   batch_size: 20
 }
 
-Circuitry.subscribe('https://...', options) do |message, topic_name|
+Circuitry.subscribe(options) do |message, topic_name|
   # ...
 end
 ```
@@ -219,7 +260,7 @@ Alternatively, if your options hash will remain unchanged, you can build a singl
 ```ruby
 options = { ... }
 subscriber = Circuitry::Subscriber.new(options)
-subscriber.subscribe('https://...') do |message, topic_name|
+subscriber.subscribe do |message, topic_name|
   # ...
 end
 ```
@@ -305,7 +346,7 @@ The soft and hard TTL values can be changed by passing a `:soft_ttl` or
 that a lock should persist. For example:
 
 ```ruby
-Circuitry.config.lock_strategy = Circuitry::Locks::Memory.new(
+Circuitry.subscriber_config.lock_strategy = Circuitry::Locks::Memory.new(
     soft_ttl: 10 * 60,      # 10 minutes
     hard_ttl: 48 * 60 * 60  # 48 hours
 )
@@ -432,7 +473,7 @@ pass your lock instance to the configuration as the `:lock_strategy`.
 
 ```ruby
 connection = PG.connect(...)
-Circuitry.config.lock_strategy = DatabaseLockStrategy.new(connection: connection)
+Circuitry.subcriber_config.lock_strategy = DatabaseLockStrategy.new(connection: connection)
 ```
 
 ### Middleware
@@ -473,24 +514,29 @@ end
 Adding the middleware to the stack happens through the Circuitry config.
 
 ```ruby
-Circuitry.config do |config|
+Circuitry.subscriber_config do |config|
   # single-line format
-  circuitry.publisher_middleware.add LoggerMiddleware, namespace: 'publisher'
-  circuitry.subscriber_middleware.add LoggerMiddleware, namespace: 'subscriber', logger: Rails.logger
+  config.middleware.add LoggerMiddleware, namespace: 'subscriber_app', logger: Rails.logger
 
   # block format
-  circuitry.publisher_middleware do |chain|
-    chain.add LoggerMiddleware, namespace: 'publisher'
+  config.middleware do |chain|
+    chain.add LoggerMiddleware, namespace: 'subscriber_app', logger: Rails.logger
   end
+end
 
-  circuitry.subscriber_middleware do |chain|
-    chain.add LoggerMiddleware, namespace: 'subscriber', logger: Rails.logger
+Circuitry.publisher_config do |config|
+  # single-line format
+  config.middleware.add LoggerMiddleware, namespace: 'publisher_app'
+
+  # block format
+  config.middleware do |chain|
+    chain.add LoggerMiddleware, namespace: 'publisher_app'
   end
 end
 ```
 
-Both `publisher_middleware` and `subscriber_middleware` respond to a handful of methods that can be
-used for configuring your middleware:
+`config.middleware` responds to a handful of methods that can be used for configuring
+your middleware:
 
 * `#add`: Appends a middleware class to the end of the chain.  If the class already exists, it is
   replaced.

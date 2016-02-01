@@ -9,7 +9,7 @@ module Circuitry
         def process(&block)
           pid = fork do
             safely_process(&block)
-            Circuitry.config.on_fork_exit.call if Circuitry.config.on_fork_exit
+            on_exit.call if on_exit
           end
 
           Process.detach(pid)

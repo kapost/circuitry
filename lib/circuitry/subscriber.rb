@@ -30,8 +30,8 @@ module Circuitry
       options = DEFAULT_OPTIONS.merge(options)
 
       self.subscribed = false
+      self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      self.queue = Queue.find(Circuitry.config.subscriber_queue_name).url
       %i[lock async timeout wait_time batch_size].each do |sym|
         send(:"#{sym}=", options[sym])
       end
@@ -64,7 +64,7 @@ module Circuitry
     end
 
     def self.default_async_strategy
-      Circuitry.config.subscribe_async_strategy
+      Circuitry.subscriber_config.async_strategy
     end
 
     protected
@@ -74,7 +74,7 @@ module Circuitry
 
     def lock=(value)
       value = case value
-              when true then Circuitry.config.lock_strategy
+              when true then Circuitry.subscriber_config.lock_strategy
               when false then Circuitry::Locks::NOOP.new
               when Circuitry::Locks::Base then value
               else raise ArgumentError, lock_value_error(value)
@@ -181,21 +181,21 @@ module Circuitry
     end
 
     def logger
-      Circuitry.config.logger
+      Circuitry.subscriber_config.logger
     end
 
     def error_handler
-      Circuitry.config.error_handler
+      Circuitry.subscriber_config.error_handler
     end
 
     def can_subscribe?
-      Circuitry.config.aws_options.values.all? do |value|
+      Circuitry.subscriber_config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end
 
     def middleware
-      Circuitry.config.subscriber_middleware
+      Circuitry.subscriber_config.middleware
     end
   end
 end

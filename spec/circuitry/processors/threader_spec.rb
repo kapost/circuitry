@@ -5,6 +5,8 @@ RSpec.describe Circuitry::Processors::Threader, type: :model do
 
   it { is_expected.to be_a Circuitry::Processor }
 
+  it_behaves_like 'an asyncronous processor'
+
   describe '.process' do
     let(:pool) { double('Array', '<<': []) }
     let(:block) { ->{ } }
@@ -41,21 +43,6 @@ RSpec.describe Circuitry::Processors::Threader, type: :model do
     it 'clears the pool' do
       subject.flush
       expect(pool).to be_empty
-    end
-  end
-
-  describe 'when on_thread_exit is defined' do
-    let(:block) { ->{ } }
-    let(:on_thread_exit) { double('Proc', call: true) }
-
-    before do
-      allow(Circuitry.config).to receive(:on_thread_exit).and_return(on_thread_exit)
-    end
-
-    it 'calls the proc' do
-      subject.process(&block)
-      subject.flush
-      expect(on_thread_exit).to have_received(:call)
     end
   end
 end

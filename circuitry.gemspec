@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Matt Huggins', 'Brandon Croft']
   spec.email         = ['matt.huggins@kapost.com', 'brandon@kapost.com']
 
-  spec.summary       = %q{Decouple ruby applications using Amazon SNS fanout with SQS processing.}
-  spec.description   = %q{A Circuitry publisher application can broadcast events which can be processed independently by Circuitry subscriber applications.}
+  spec.summary       = 'Decouple ruby applications using Amazon SNS fanout with SQS processing.'
+  spec.description   = 'A Circuitry publisher application can broadcast events which can be processed independently by Circuitry subscriber applications.'
   spec.homepage      = 'https://github.com/kapost/circuitry'
   spec.license       = 'MIT'
 

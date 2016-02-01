@@ -75,7 +75,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
       let(:messages) { [] }
 
       before do
-        allow(Circuitry.config).to receive(:logger).and_return(logger)
+        allow(Circuitry.subscriber_config).to receive(:logger).and_return(logger)
         allow(subject).to receive(:sqs).and_return(mock_sqs)
         allow(Aws::SQS::QueuePoller).to receive(:new).with(queue, client: mock_sqs).and_return(mock_poller)
 
@@ -86,7 +86,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       describe 'when AWS credentials are set' do
         before do
-          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
+          allow(Circuitry.subscriber_config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
         end
 
         it 'subscribes to SQS' do
@@ -253,7 +253,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
+          allow(Circuitry.subscriber_config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
         end
 
         it 'does not subscribe to SNS' do

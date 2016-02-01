@@ -40,7 +40,7 @@ module Circuitry
         if pool?
           client.with(&block)
         else
-          block.call(client)
+          yield client
         end
       end
 

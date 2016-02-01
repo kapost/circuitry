@@ -5,7 +5,9 @@ module Circuitry
   class CLI < Thor
     class_option :verbose, aliases: :v, type: :boolean
 
-    desc 'provision <queue> -t <topic> [<topic> ...]', 'Provision a queue subscribed to one or more topics'
+    desc 'provision <queue> -t <topic> [<topic> ...]', <<-END
+      Provision a queue subscribed to one or more topics
+    END
 
     long_desc <<-END
       Creates an SQS queue with appropriate SNS access policy along with one or more SNS topics
@@ -21,18 +23,25 @@ module Circuitry
       name <queue>-failures
     END
 
-    option :topics, aliases: :t, type: :array, required: :true
-    option :access_key, aliases: :a
-    option :secret_key, aliases: :s
-    option :dead_letter_queue, aliases: :d
-    option :region, aliases: :r
+    option :topic_names, aliases: :t, type: :array, required: true
+    option :access_key, aliases: :a, required: true
+    option :secret_key, aliases: :s, required: true
+    option :region, aliases: :r, required: true
+    option :dead_letter_queue_name, aliases: :d
+    option :visibility_timeout, aliases: :v, default: 30 * 60
+    option :max_receive_count, aliases: :n, default: 8
+
+    OPTIONS_KEYS_PUBLISHER_CONFIG = [:access_key, :secret_key, :region].freeze
+
+    OPTIONS_KEYS_SUBSCRIBER_CONFIG = [:access_key, :secret_key, :region, :dead_letter_queue_name,
+                                      :topic_names, :max_receive_count, :visibility_timeout].freeze
 
     def provision(queue_name)
-      with_custom_config(queue_name) do |config|
-        logger = Logger.new(STDOUT)
-        logger.level = Logger::INFO if options['verbose']
-        Circuitry::Provisioning.provision(config, logger: logger)
-      end
+      initialize_config(queue_name)
+
+      logger = Logger.new(STDOUT)
+      logger.level = Logger::INFO if options['verbose']
+      Circuitry::Provisioning.provision(logger: logger)
     end
 
     private
@@ -41,30 +50,21 @@ module Circuitry
       puts(*args) if options['verbose']
     end
 
-    def with_custom_config(queue_name, &block)
-      original_values = {}
-      %i[access_key secret_key region subscriber_queue_name subscriber_dead_letter_queue_name subscriber_topic_names].each do |sym|
-        original_values[sym] = Circuitry.config.send(sym)
+    def initialize_config(queue_name)
+      Circuitry.publisher_config.topic_names = []
+      Circuitry.subscriber_config.queue_name = queue_name
+
+      assign_options_config
+    end
+
+    def assign_options_config
+      OPTIONS_KEYS_PUBLISHER_CONFIG.each do |key|
+        Circuitry.publisher_config.send(:"#{key}=", options[key.to_s])
       end
 
-      assign_options_config(queue_name, original_values)
-
-      block.call(Circuitry.config)
-    ensure
-      restore_config(original_values)
-    end
-
-    def assign_options_config(queue_name, original_values)
-      Circuitry.config.access_key = options.fetch('access_key', original_values[:access_key])
-      Circuitry.config.secret_key = options.fetch('secret_key', original_values[:secret_key])
-      Circuitry.config.region = options.fetch('region', original_values[:region])
-      Circuitry.config.subscriber_queue_name = queue_name
-      Circuitry.config.subscriber_dead_letter_queue_name = options.fetch('dead_letter_queue', "#{queue_name}-failures")
-      Circuitry.config.subscriber_topic_names = options['topics']
-    end
-
-    def restore_config(original_values)
-      original_values.keys.each { |key| Circuitry.config.send(:"#{key}=", original_values[key]) }
+      OPTIONS_KEYS_SUBSCRIBER_CONFIG.each do |key|
+        Circuitry.subscriber_config.send(:"#{key}=", options[key.to_s])
+      end
     end
   end
 end

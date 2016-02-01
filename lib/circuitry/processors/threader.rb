@@ -11,7 +11,7 @@ module Circuitry
 
           pool << Thread.new do
             safely_process(&block)
-            Circuitry.config.on_thread_exit.call if Circuitry.config.on_thread_exit
+            on_exit.call if on_exit
           end
         end
 

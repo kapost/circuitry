@@ -1,0 +1,12 @@
+---
+test:
+  access_key: "test_access_key"
+  (╯°□°）╯︵ ┻━┻: "don't flip"
+  wat: "us-east-1"
+  async_strategy: "not a symbol"
+  lock_strategy: "not a lock"
+  subscriber:
+    topic_names: ["topic1", "topic2"]
+    queue_name: "app-valid-queuename"
+  publisher:
+    topic_names: ["published_topic1"]

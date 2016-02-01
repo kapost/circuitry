@@ -54,7 +54,7 @@ module Circuitry
       def invoke(*args)
         chain = build.dup
 
-        traverse_chain = -> do
+        traverse_chain = lambda do
           if chain.empty?
             yield
           else

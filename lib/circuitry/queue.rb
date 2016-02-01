@@ -2,6 +2,8 @@ require 'circuitry/services/sqs'
 
 module Circuitry
   class Queue
+    include Services::SQS
+
     class Finder
       include Services::SQS
 
