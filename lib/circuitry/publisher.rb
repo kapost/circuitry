@@ -2,7 +2,6 @@ require 'json'
 require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sns'
-require 'circuitry/topic_creator'
 
 module Circuitry
   class PublishError < StandardError; end
@@ -52,7 +51,7 @@ module Circuitry
         Timeout.timeout(timeout) do
           logger.info("Publishing message to #{topic_name}")
 
-          topic = TopicCreator.find_or_create(topic_name)
+          topic = Topic.find(topic_name)
           sns.publish(topic_arn: topic.arn, message: message)
         end
       end

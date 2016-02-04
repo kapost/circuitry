@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Circuitry::QueueCreator, type: :model do
+RSpec.describe Circuitry::Provisioning::QueueCreator, type: :model do
   describe '.find_or_create' do
     subject { described_class }
     before do

@@ -9,7 +9,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
   it { is_expected.to be_a Circuitry::Concerns::Async }
 
   before do
-    allow(Circuitry::QueueCreator).to receive(:find_or_create).and_return(double('Queue', url: queue))
+    allow(Circuitry::Queue).to receive(:find).and_return(double('Queue', url: queue))
   end
 
   describe '.new' do

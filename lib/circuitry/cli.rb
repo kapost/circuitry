@@ -1,4 +1,4 @@
-require 'circuitry/provisioner'
+require 'circuitry/provisioning'
 require 'thor'
 
 module Circuitry
@@ -31,7 +31,7 @@ module Circuitry
       with_custom_config(queue_name) do |config|
         logger = Logger.new(STDOUT)
         logger.level = Logger::INFO if options['verbose']
-        Circuitry::Provisioner.new(config, logger: logger).run
+        Circuitry::Provisioning.provision(config, logger: logger)
       end
     end
 
@@ -43,7 +43,7 @@ module Circuitry
 
     def with_custom_config(queue_name, &block)
       original_values = {}
-      %i[access_key secret_key region subscriber_queue_name subscriber_dead_letter_queue_name publisher_topic_names].each do |sym|
+      %i[access_key secret_key region subscriber_queue_name subscriber_dead_letter_queue_name subscriber_topic_names].each do |sym|
         original_values[sym] = Circuitry.config.send(sym)
       end
 
@@ -60,7 +60,7 @@ module Circuitry
       Circuitry.config.region = options.fetch('region', original_values[:region])
       Circuitry.config.subscriber_queue_name = queue_name
       Circuitry.config.subscriber_dead_letter_queue_name = options.fetch('dead_letter_queue', "#{queue_name}-failures")
-      Circuitry.config.publisher_topic_names = options['topics']
+      Circuitry.config.subscriber_topic_names = options['topics']
     end
 
     def restore_config(original_values)
