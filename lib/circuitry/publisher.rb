@@ -39,7 +39,7 @@ module Circuitry
     end
 
     def self.default_async_strategy
-      Circuitry.config.publish_async_strategy
+      Circuitry.publisher_config.async_strategy
     end
 
     protected
@@ -62,17 +62,17 @@ module Circuitry
     private
 
     def logger
-      Circuitry.config.logger
+      Circuitry.publisher_config.logger
     end
 
     def can_publish?
-      Circuitry.config.aws_options.values.all? do |value|
+      Circuitry.publisher_config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end
 
     def middleware
-      Circuitry.config.publisher_middleware
+      Circuitry.publisher_config.middleware
     end
   end
 end

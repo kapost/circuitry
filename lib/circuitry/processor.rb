@@ -1,6 +1,6 @@
 module Circuitry
   module Processor
-    def process(&block)
+    def process(&_block)
       raise NotImplementedError, "#{self} must implement class method `process`"
     end
 
@@ -10,13 +10,11 @@ module Circuitry
 
     protected
 
-    def safely_process(&block)
-      begin
-        block.call
-      rescue => e
-        logger.error("Error handling message: #{e}")
-        error_handler.call(e) if error_handler
-      end
+    def safely_process
+      yield
+    rescue => e
+      logger.error("Error handling message: #{e}")
+      error_handler.call(e) if error_handler
     end
 
     def pool
@@ -26,11 +24,11 @@ module Circuitry
     private
 
     def logger
-      Circuitry.config.logger
+      Circuitry.subscriber_config.logger
     end
 
     def error_handler
-      Circuitry.config.error_handler
+      Circuitry.subscriber_config.error_handler
     end
   end
 end

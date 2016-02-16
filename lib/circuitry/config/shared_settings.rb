@@ -1,3 +1,5 @@
+require 'logger'
+
 module Circuitry
   module Config
     module SharedSettings
@@ -17,11 +19,6 @@ module Circuitry
         @_middleware ||= Circuitry::Middleware::Chain.new
         yield @_middleware if block_given?
         @_middleware
-      end
-
-      def async_strategy=(value)
-        validate_setting(value, Publisher.async_strategies)
-        super
       end
 
       def aws_options

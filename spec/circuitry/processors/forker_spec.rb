@@ -38,7 +38,7 @@ RSpec.describe Circuitry::Processors::Forker, type: :model do
     before do
       allow(subject).to receive(:fork) { |&block| block.call }
       allow(Process).to receive(:detach)
-      allow(Circuitry.config).to receive(:on_fork_exit).and_return(on_fork_exit)
+      allow(Circuitry.subscriber_config).to receive(:on_fork_exit).and_return(on_fork_exit)
     end
 
     it 'calls the proc' do

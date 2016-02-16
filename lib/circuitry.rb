@@ -1,5 +1,4 @@
 require 'circuitry/railtie' if defined?(Rails) && Rails::VERSION::MAJOR >= 3
-require 'circuitry/configuration'
 require 'circuitry/config/publisher_settings'
 require 'circuitry/config/subscriber_settings'
 require 'circuitry/locks/base'
@@ -17,23 +16,39 @@ require 'circuitry/subscriber'
 require 'circuitry/version'
 
 module Circuitry
-  def self.config(&block)
-    @config ||= Configuration.new
-    block.call(@config) if block_given?
-    @config
-  end
-  
-  def self.publish(topic_name, object, options = {})
-    Publisher.new(options).publish(topic_name, object)
-  end
+  class << self
+    def subscriber_config
+      @_sub_config ||= Config::SubscriberSettings.new
+      yield @_sub_config if block_given?
+      @_sub_config
+    end
 
-  def self.subscribe(options = {}, &block)
-    Subscriber.new(options).subscribe(&block)
-  end
+    def subscriber_config=(options)
+      @_sub_config = Config::SubscriberSettings.new(options)
+    end
 
-  def self.flush
-    Processors.constants.each do |const|
-      Processors.const_get(const).flush
+    def publisher_config
+      @_pub_config ||= Config::PublisherSettings.new
+      yield @_pub_config if block_given?
+      @_pub_config
+    end
+
+    def publisher_config=(options)
+      @_pub_config = Config::PublisherSettings.new(options)
+    end
+
+    def publish(topic_name, object, options = {})
+      Publisher.new(options).publish(topic_name, object)
+    end
+
+    def subscribe(options = {}, &block)
+      Subscriber.new(options).subscribe(&block)
+    end
+
+    def flush
+      Processors.constants.each do |const|
+        Processors.const_get(const).flush
+      end
     end
   end
 end

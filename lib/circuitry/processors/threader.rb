@@ -8,10 +8,11 @@ module Circuitry
 
         def process(&block)
           raise ArgumentError, 'no block given' unless block_given?
+          on_exit = Circuitry.subscriber_config.on_thread_exit
 
           pool << Thread.new do
             safely_process(&block)
-            Circuitry.config.on_thread_exit.call if Circuitry.config.on_thread_exit
+            on_exit.call if on_exit
           end
         end
 

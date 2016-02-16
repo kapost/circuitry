@@ -6,6 +6,11 @@ module Circuitry
     class PublisherSettings
       include Virtus::Model
       include SharedSettings
+
+      def async_strategy=(value)
+        validate_setting(value, Publisher.async_strategies)
+        super
+      end
     end
   end
 end

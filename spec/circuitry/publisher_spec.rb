@@ -34,14 +34,14 @@ RSpec.describe Circuitry::Publisher, type: :model do
       let(:mock_sns) { double('SNS', publish: true) }
 
       before do
-        allow(Circuitry.config).to receive(:logger).and_return(logger)
+        allow(Circuitry.publisher_config).to receive(:logger).and_return(logger)
         allow(Circuitry::Topic).to receive(:find).with(topic_name).and_return(topic)
         allow(subject).to receive(:sns).and_return(mock_sns)
       end
 
       describe 'when AWS credentials are set' do
         before do
-          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
+          allow(Circuitry.publisher_config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
         end
 
         shared_examples_for 'a valid publish request' do
@@ -80,7 +80,7 @@ RSpec.describe Circuitry::Publisher, type: :model do
 
       describe 'when AWS credentials are not set' do
         before do
-          allow(Circuitry.config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
+          allow(Circuitry.publisher_config).to receive(:aws_options).and_return(access_key_id: '', secret_access_key: '', region: 'region')
         end
 
         it 'does not publish to SNS' do

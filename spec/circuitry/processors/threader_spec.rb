@@ -49,7 +49,7 @@ RSpec.describe Circuitry::Processors::Threader, type: :model do
     let(:on_thread_exit) { double('Proc', call: true) }
 
     before do
-      allow(Circuitry.config).to receive(:on_thread_exit).and_return(on_thread_exit)
+      allow(Circuitry.subscriber_config).to receive(:on_thread_exit).and_return(on_thread_exit)
     end
 
     it 'calls the proc' do
