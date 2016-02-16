@@ -7,7 +7,7 @@ end
 RSpec.describe sqs_class, type: :model do
   describe '#sqs' do
     before do
-      allow(Circuitry.config).to receive(:aws_options).and_return(aws_options)
+      allow(Circuitry.subscriber_config).to receive(:aws_options).and_return(aws_options)
     end
 
     let(:aws_options) { { access_key_id: 'foo', secret_access_key: 'bar', region: 'us-east-1' } }

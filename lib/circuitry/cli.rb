@@ -21,17 +21,19 @@ module Circuitry
       name <queue>-failures
     END
 
-    option :topics, aliases: :t, type: :array, required: :true
-    option :access_key, aliases: :a
-    option :secret_key, aliases: :s
+    option :topics, aliases: :t, type: :array, required: true
+    option :access_key, aliases: :a, required: true
+    option :secret_key, aliases: :s, required: true
+    option :region, aliases: :r, required: true
     option :dead_letter_queue, aliases: :d
-    option :region, aliases: :r
+    option :visibility_timeout, aliases: :v
+    option :max_retry_count, aliases: :t
 
     def provision(queue_name)
-      with_custom_config(queue_name) do |config|
+      with_custom_config(queue_name) do
         logger = Logger.new(STDOUT)
         logger.level = Logger::INFO if options['verbose']
-        Circuitry::Provisioning.provision(config, logger: logger)
+        Circuitry::Provisioning.provision(logger: logger)
       end
     end
 
@@ -41,30 +43,23 @@ module Circuitry
       puts(*args) if options['verbose']
     end
 
-    def with_custom_config(queue_name, &block)
-      original_values = {}
-      %i[access_key secret_key region subscriber_queue_name subscriber_dead_letter_queue_name subscriber_topic_names].each do |sym|
-        original_values[sym] = Circuitry.config.send(sym)
+    def with_custom_config(queue_name)
+      assign_options_config(queue_name)
+      yield
+    end
+
+    def assign_options_config(queue_name)
+      [:access_key, :secret_key, :region].each do |key|
+        Circuitry.subscriber_config.send(:"#{key}=", options.fetch(key.to_s))
+        Circuitry.publisher_config.send(:"#{key}=", options.fetch(key.to_s))
       end
 
-      assign_options_config(queue_name, original_values)
-
-      block.call(Circuitry.config)
-    ensure
-      restore_config(original_values)
-    end
-
-    def assign_options_config(queue_name, original_values)
-      Circuitry.config.access_key = options.fetch('access_key', original_values[:access_key])
-      Circuitry.config.secret_key = options.fetch('secret_key', original_values[:secret_key])
-      Circuitry.config.region = options.fetch('region', original_values[:region])
-      Circuitry.config.subscriber_queue_name = queue_name
-      Circuitry.config.subscriber_dead_letter_queue_name = options.fetch('dead_letter_queue', "#{queue_name}-failures")
-      Circuitry.config.subscriber_topic_names = options['topics']
-    end
-
-    def restore_config(original_values)
-      original_values.keys.each { |key| Circuitry.config.send(:"#{key}=", original_values[key]) }
+      Circuitry.subscriber_config.queue_name = queue_name
+      Circuitry.subscriber_config.dead_letter_queue_name = options.fetch('dead_letter_queue', "#{queue_name}-failures")
+      Circuitry.subscriber_config.topic_names = options['topics']
+      Circuitry.publisher_config.topic_names = []
+      Circuitry.subscriber_config.max_retry_count = options.fetch('max_retry_count', 8)
+      Circuitry.subscriber_config.visibility_timeout = options.fetch('visibility_timeout', 30 * 60)
     end
   end
 end

@@ -16,7 +16,7 @@ RSpec.describe Circuitry::CLI do
     let(:topic) { Circuitry::Topic.new('arn:aws:sns:us-east-1:123456789012:some-topic-name') }
 
     describe 'vanilla command' do
-      let(:command) { 'provision example -t topic1 topic2' }
+      let(:command) { 'provision example -t topic1 topic2 -a 123 -s 123 -r us-east-1' }
 
       it 'creates primary and dead letter queues' do
         expect(Circuitry::Provisioning::QueueCreator).to have_received(:find_or_create).once.with('example', hash_including(dead_letter_queue_name: 'example-failures'))
