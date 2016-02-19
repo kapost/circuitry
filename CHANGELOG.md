@@ -1,3 +1,7 @@
+## Circuitry 3.0.1 (Feb 19, 2016)
+
+* Reworded provisioner subscription creator message *Brandon Croft*
+
 ## Circuitry 3.0.0 (Feb 19, 2016)
 
 * Added separate configuration for publisher/subscriber applications *Brandon Croft*

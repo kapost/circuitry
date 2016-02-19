@@ -30,7 +30,7 @@ module Circuitry
       end
 
       def create_queue
-        safe_aws('Create Queue') do
+        safe_aws('Create queue') do
           queue = QueueCreator.find_or_create(
             subscriber_config.queue_name,
             dead_letter_queue_name: subscriber_config.dead_letter_queue_name,
@@ -43,7 +43,7 @@ module Circuitry
       end
 
       def create_topics(type, topics)
-        safe_aws("Create #{type.to_s.capitalize} Topics") do
+        safe_aws("Create #{type.to_s} topics") do
           topics.map do |topic_name|
             topic = TopicCreator.find_or_create(topic_name)
             logger.info "Created topic #{topic.name}"
@@ -53,9 +53,10 @@ module Circuitry
       end
 
       def subscribe_topics(queue, topics)
-        safe_aws('Subscribe Topics') do
+        safe_aws('Subscribe to topics') do
           SubscriptionCreator.subscribe_all(queue, topics)
-          logger.info "Subscribed all topics to #{queue.name}"
+          plural_form = topics.size == 1 ? '' : 's'
+          logger.info "Subscribed #{topics.size} topic#{plural_form} to #{queue.name}"
           true
         end
       end
