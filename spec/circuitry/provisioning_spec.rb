@@ -3,25 +3,24 @@ require 'spec_helper'
 RSpec.describe Circuitry::Provisioning do
   subject { described_class }
 
-  let(:config) { Circuitry::Configuration.new }
   let(:queue) { Circuitry::Queue.new('my_queue_name') }
   let(:topic) { Circuitry::Topic.new('my_topic_arn') }
 
   describe '.provision' do
     before do
-      config.subscriber_queue_name = 'my_queue_name'
-      config.subscriber_topic_names = ['my_topic_name1', 'my_topic_name2']
-      config.publisher_topic_names = ['my_sub_topic_name']
+      Circuitry.subscriber_config.queue_name = 'my_queue_name'
+      Circuitry.subscriber_config.topic_names = ['my_topic_name1', 'my_topic_name2']
+      Circuitry.publisher_config.topic_names = ['my_sub_topic_name']
 
       allow(Circuitry::Provisioning::QueueCreator).to receive(:find_or_create).and_return(queue)
       allow(Circuitry::Provisioning::TopicCreator).to receive(:find_or_create).and_return(topic)
       allow(Circuitry::Provisioning::SubscriptionCreator).to receive(:subscribe_all).and_return(true)
 
-      subject.provision(config)
+      subject.provision
     end
 
     it 'creates queues from config' do
-      expect(Circuitry::Provisioning::QueueCreator).to have_received(:find_or_create).once.with(config.subscriber_queue_name, hash_including(:dead_letter_queue_name => 'my_queue_name-failures'))
+      expect(Circuitry::Provisioning::QueueCreator).to have_received(:find_or_create).once.with(Circuitry.subscriber_config.queue_name, { dead_letter_queue_name: 'my_queue_name-failures', visibility_timeout: Circuitry.subscriber_config.visibility_timeout, max_receive_count: Circuitry.subscriber_config.max_receive_count })
     end
 
     it 'creates each publishing topics from config' do

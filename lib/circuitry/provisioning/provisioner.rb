@@ -5,8 +5,7 @@ require 'circuitry/provisioning/subscription_creator'
 module Circuitry
   module Provisioning
     class Provisioner
-      def initialize(config, logger)
-        self.config = config
+      def initialize(logger)
         self.logger = logger
       end
 
@@ -14,20 +13,29 @@ module Circuitry
         queue = create_queue
         return unless queue
 
-        create_topics(:publisher, config.publisher_topic_names)
-        subscribe_topics(queue, create_topics(:subscriber, config.subscriber_topic_names))
+        create_topics(:publisher, publisher_config.topic_names)
+        subscribe_topics(queue, create_topics(:subscriber, subscriber_config.topic_names))
       end
 
       private
 
-      attr_accessor :config
       attr_accessor :logger
+
+      def publisher_config
+        Circuitry.publisher_config
+      end
+
+      def subscriber_config
+        Circuitry.subscriber_config
+      end
 
       def create_queue
         safe_aws('Create Queue') do
           queue = QueueCreator.find_or_create(
-            config.subscriber_queue_name,
-            dead_letter_queue_name: config.subscriber_dead_letter_queue_name
+            subscriber_config.queue_name,
+            dead_letter_queue_name: subscriber_config.dead_letter_queue_name,
+            max_receive_count: subscriber_config.max_receive_count,
+            visibility_timeout: subscriber_config.visibility_timeout
           )
           logger.info "Created queue #{queue.url}"
           queue

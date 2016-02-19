@@ -19,7 +19,7 @@ module Circuitry
         reap
 
         store do |store|
-          if store.has_key?(key)
+          if store.key?(key)
             false
           else
             store[key] = Time.now + ttl
@@ -44,16 +44,16 @@ module Circuitry
 
       private
 
-      def store(&block)
+      def store
         semaphore.synchronize do
-          block.call(self.class.store)
+          yield self.class.store
         end
       end
 
       def reap
         store do |store|
           now = Time.now
-          store.delete_if { |key, expires_at| expires_at <= now }
+          store.delete_if { |_, expires_at| expires_at <= now }
         end
       end
 

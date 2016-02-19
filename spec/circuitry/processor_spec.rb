@@ -46,7 +46,7 @@ RSpec.describe Circuitry::Processor, type: :model do
       let(:block) { ->{ raise StandardError } }
 
       before do
-        allow(Circuitry.config.logger).to receive(:error)
+        allow(Circuitry.subscriber_config.logger).to receive(:error)
       end
 
       it 'does not re-raise the error' do
@@ -55,19 +55,19 @@ RSpec.describe Circuitry::Processor, type: :model do
 
       it 'logs an error' do
         process
-        expect(Circuitry.config.logger).to have_received(:error)
+        expect(Circuitry.subscriber_config.logger).to have_received(:error)
       end
 
       describe 'when an error handler is defined' do
         let(:error_handler) { double('Proc', call: true) }
 
         before do
-          allow(Circuitry.config).to receive(:error_handler).and_return(error_handler)
+          allow(Circuitry.subscriber_config).to receive(:error_handler).and_return(error_handler)
         end
 
         it 'handles the error' do
           process
-          expect(Circuitry.config.error_handler).to have_received(:call)
+          expect(Circuitry.subscriber_config.error_handler).to have_received(:call)
         end
       end
 
@@ -76,13 +76,13 @@ RSpec.describe Circuitry::Processor, type: :model do
 
         before do
           allow_message_expectations_on_nil
-          allow(Circuitry.config).to receive(:error_handler).and_return(error_handler)
+          allow(Circuitry.subscriber_config).to receive(:error_handler).and_return(error_handler)
           allow(error_handler).to receive(:call)
         end
 
         it 'does not handle the error' do
           process
-          expect(Circuitry.config.error_handler).to_not have_received(:call)
+          expect(Circuitry.subscriber_config.error_handler).to_not have_received(:call)
         end
       end
     end
@@ -91,13 +91,13 @@ RSpec.describe Circuitry::Processor, type: :model do
       let(:block) { ->{ } }
 
       it 'does not log an error' do
-        expect(Circuitry.config.logger).to_not receive(:error)
+        expect(Circuitry.subscriber_config.logger).to_not receive(:error)
         process
       end
 
       it 'does not handle an error' do
         allow_message_expectations_on_nil
-        expect(Circuitry.config.error_handler).to_not receive(:call)
+        expect(Circuitry.subscriber_config.error_handler).to_not receive(:call)
         process
       end
     end

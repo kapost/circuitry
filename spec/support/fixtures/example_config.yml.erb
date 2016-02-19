@@ -1,0 +1,11 @@
+---
+test:
+  access_key: <%="test_access_key" %>
+  secret_key: <%="test_secret_key" %>
+  region: "us-east-1"
+  subscriber:
+    topic_names: ["topic1", "topic2"]
+    queue_name: "app-production-queuename"
+    max_receive_count: "4"
+  publisher:
+    topic_names: ["published_topic1"]

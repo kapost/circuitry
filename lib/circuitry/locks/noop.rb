@@ -5,7 +5,7 @@ module Circuitry
 
       protected
 
-      def lock(key, ttl)
+      def lock(_key, _ttl)
         true
       end
 

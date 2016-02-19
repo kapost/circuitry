@@ -25,15 +25,15 @@ module Circuitry
 
       protected
 
-      def lock(key, ttl)
+      def lock(_key, _ttl)
         raise NotImplementedError
       end
 
-      def lock!(key, ttl)
+      def lock!(_key, _ttl)
         raise NotImplementedError
       end
 
-      def unlock!(key)
+      def unlock!(_key)
         raise NotImplementedError
       end
 
