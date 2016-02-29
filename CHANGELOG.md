@@ -1,17 +1,17 @@
 ## Circuitry 3.0.1 (Feb 19, 2016)
 
-* Reworded provisioner subscription creator message *Brandon Croft*
+* Reworded provisioner subscription creator message. *Brandon Croft*
 
 ## Circuitry 3.0.0 (Feb 19, 2016)
 
-* Added separate configuration for publisher/subscriber applications *Brandon Croft*
-* Added YML config option *Brandon Croft*
-* Added max_receive_count and visibility_timeout subscriber config options *Brandon Croft*
-* Replace on_thread_exit and on_fork_exit with on_async_exit config option *Brandon Croft*
+* Added separate configuration for publisher/subscriber applications. *Brandon Croft*
+* Added YML config option. *Brandon Croft*
+* Added max_receive_count and visibility_timeout subscriber config options. *Brandon Croft*
+* Replace on_thread_exit and on_fork_exit with on_async_exit config option. *Brandon Croft*
 
 ## Circuitry 2.1.1 (Jan 30, 2016)
 
-* Fixed missing require in subscriber *Brandon Croft*
+* Fixed missing require in subscriber. *Brandon Croft*
 
 ## Circuitry 2.1.0 (Jan 28, 2016)
 
