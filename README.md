@@ -555,6 +555,16 @@ your middleware:
 * `#clear`: Removes all middleware classes from the chain.
   * `middleware.clear`
 
+## Testing
+
+Circuitry provides a simple option for testing publishing and subscribing without actually hitting
+Amazon services.  Inside your test suite (e.g.: `spec_helper.rb`), just make sure you include the
+following line:
+
+```ruby
+require 'circuitry/testing'
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run
