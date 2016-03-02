@@ -86,8 +86,8 @@ development:
 production:
   publisher:
     topic_names:
-      - brandonc-appname-user-create
-      - brandonc-appname-user-destroy
+      - production-appname-user-create
+      - production-appname-user-destroy
   subscriber:
     queue_name: "production-appname"
     dead_letter_queue_name: "production-appname-failures"
