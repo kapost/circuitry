@@ -5,6 +5,10 @@ module Circuitry
     class Chain
       include Enumerable
 
+      def initialize
+        yield self if block_given?
+      end
+
       def each(&block)
         entries.each(&block)
       end
