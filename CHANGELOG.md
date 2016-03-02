@@ -1,3 +1,9 @@
+## Circuitry 3.1.0 (Mar 2, 2016)
+
+* Adding test stubs. *Matt Huggins*
+* Adding flush middleware. *Matt Huggins*
+* Updated provisioning to permit publisher-only configuration (no queue name). *Matt Huggins*
+
 ## Circuitry 3.0.1 (Feb 19, 2016)
 
 * Reworded provisioner subscription creator message. *Brandon Croft*
@@ -6,8 +12,8 @@
 
 * Added separate configuration for publisher/subscriber applications. *Brandon Croft*
 * Added YML config option. *Brandon Croft*
-* Added max_receive_count and visibility_timeout subscriber config options. *Brandon Croft*
-* Replace on_thread_exit and on_fork_exit with on_async_exit config option. *Brandon Croft*
+* Added `max_receive_count` and `visibility_timeout` subscriber config options. *Brandon Croft*
+* Replaced `on_thread_exit` and `on_fork_exit` with `on_async_exit` config option. *Brandon Croft*
 
 ## Circuitry 2.1.1 (Jan 30, 2016)
 
@@ -19,8 +25,8 @@
 
 ## Circuitry 2.0.0 (Jan 28, 2016)
 
-* Added subscriber_queue_name config. *Brandon Croft*
-* Added publisher_topic_names config. *Brandon Croft*
+* Added `subscriber_queue_name` config. *Brandon Croft*
+* Added `publisher_topic_names` config. *Brandon Croft*
 * Added CLI and rake provisioning of queues and topics as defined by config. *Brandon Croft*
 * Removed the requirement to provide a SQS URL to the subscriber. *Brandon Croft*
 
