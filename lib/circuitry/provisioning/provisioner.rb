@@ -11,10 +11,8 @@ module Circuitry
 
       def run
         queue = create_queue
-        return unless queue
-
+        subscribe_topics(queue, create_topics(:subscriber, subscriber_config.topic_names)) if queue
         create_topics(:publisher, publisher_config.topic_names)
-        subscribe_topics(queue, create_topics(:subscriber, subscriber_config.topic_names))
       end
 
       private
@@ -30,6 +28,11 @@ module Circuitry
       end
 
       def create_queue
+        if subscriber_config.queue_name.nil?
+          logger.info 'Skipping queue creation: queue_name is not configured'
+          return nil
+        end
+
         safe_aws('Create queue') do
           queue = QueueCreator.find_or_create(
             subscriber_config.queue_name,

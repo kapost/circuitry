@@ -3,37 +3,17 @@ require 'spec_helper'
 RSpec.describe Circuitry::Provisioning do
   subject { described_class }
 
-  let(:queue) { Circuitry::Queue.new('my_queue_name') }
-  let(:topic) { Circuitry::Topic.new('my_topic_arn') }
-
   describe '.provision' do
     before do
-      Circuitry.subscriber_config.queue_name = 'my_queue_name'
-      Circuitry.subscriber_config.topic_names = ['my_topic_name1', 'my_topic_name2']
-      Circuitry.publisher_config.topic_names = ['my_sub_topic_name']
-
-      allow(Circuitry::Provisioning::QueueCreator).to receive(:find_or_create).and_return(queue)
-      allow(Circuitry::Provisioning::TopicCreator).to receive(:find_or_create).and_return(topic)
-      allow(Circuitry::Provisioning::SubscriptionCreator).to receive(:subscribe_all).and_return(true)
-
-      subject.provision
+      allow(Circuitry::Provisioning::Provisioner).to receive(:new).with(logger).and_return(provisioner)
     end
 
-    it 'creates queues from config' do
-      expect(Circuitry::Provisioning::QueueCreator).to have_received(:find_or_create).once.with(Circuitry.subscriber_config.queue_name, { dead_letter_queue_name: 'my_queue_name-failures', visibility_timeout: Circuitry.subscriber_config.visibility_timeout, max_receive_count: Circuitry.subscriber_config.max_receive_count })
-    end
+    let(:logger) { double('Logger') }
+    let(:provisioner) { double('Provisioning::Provisioner', run: true) }
 
-    it 'creates each publishing topics from config' do
-      expect(Circuitry::Provisioning::TopicCreator).to have_received(:find_or_create).once.with('my_topic_name1')
-      expect(Circuitry::Provisioning::TopicCreator).to have_received(:find_or_create).once.with('my_topic_name2')
-    end
-
-    it 'create subscriber topics from config' do
-      expect(Circuitry::Provisioning::TopicCreator).to have_received(:find_or_create).once.with('my_sub_topic_name')
-    end
-
-    it 'subscribe created subscriber topics to created queue' do
-      expect(Circuitry::Provisioning::SubscriptionCreator).to have_received(:subscribe_all).once.with(queue, [topic, topic])
+    it 'delegates to provisioner' do
+      subject.provision(logger: logger)
+      expect(provisioner).to have_received(:run)
     end
   end
 end
