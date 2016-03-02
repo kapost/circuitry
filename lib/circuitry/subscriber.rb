@@ -1,5 +1,4 @@
 require 'retries'
-require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sqs'
 require 'circuitry/message'
@@ -12,12 +11,11 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock
+    attr_reader :queue, :wait_time, :batch_size, :lock
 
     DEFAULT_OPTIONS = {
       lock: true,
       async: false,
-      timeout: 15,
       wait_time: 10,
       batch_size: 10
     }.freeze
@@ -32,7 +30,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size].each do |sym|
+      %i[lock async wait_time batch_size].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -69,7 +67,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_writer :queue, :wait_time, :batch_size
     attr_accessor :subscribed
 
     def lock=(value)
@@ -141,19 +139,15 @@ module Circuitry
     def handle_message(message, &block)
       handled = try_with_lock(message.id) do
         middleware.invoke(message.topic.name, message.body) do
-          handle_message_with_timeout(message, &block)
+          handle_message_with_rescue(message, &block)
         end
       end
 
       logger.info("Ignoring duplicate message #{message.id}") unless handled
     end
 
-    # TODO: Don't use ruby timeout.
-    # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
-    def handle_message_with_timeout(message, &block)
-      Timeout.timeout(timeout) do
-        block.call(message.body, message.topic.name)
-      end
+    def handle_message_with_rescue(message, &block)
+      block.call(message.body, message.topic.name)
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e

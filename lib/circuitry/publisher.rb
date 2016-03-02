@@ -1,5 +1,4 @@
 require 'json'
-require 'timeout'
 require 'circuitry/concerns/async'
 require 'circuitry/services/sns'
 
@@ -11,17 +10,12 @@ module Circuitry
     include Services::SNS
 
     DEFAULT_OPTIONS = {
-      async: false,
-      timeout: 15
+      async: false
     }.freeze
-
-    attr_reader :timeout
 
     def initialize(options = {})
       options = DEFAULT_OPTIONS.merge(options)
-
       self.async = options[:async]
-      self.timeout = options[:timeout]
     end
 
     def publish(topic_name, object)
@@ -46,18 +40,12 @@ module Circuitry
 
     def publish_internal(topic_name, message)
       middleware.invoke(topic_name, message) do
-        # TODO: Don't use ruby timeout.
-        # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
-        Timeout.timeout(timeout) do
-          logger.info("Publishing message to #{topic_name}")
+        logger.info("Publishing message to #{topic_name}")
 
-          topic = Topic.find(topic_name)
-          sns.publish(topic_arn: topic.arn, message: message)
-        end
+        topic = Topic.find(topic_name)
+        sns.publish(topic_arn: topic.arn, message: message)
       end
     end
-
-    attr_writer :timeout
 
     private
 

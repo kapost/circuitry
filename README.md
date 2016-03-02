@@ -185,14 +185,10 @@ The `publish` method also accepts options that impact instantiation of the
   the `async_strategy` value from the gem configuration. Please refer to
   the [Asynchronous Support](#asynchronous-support) section for more details
   regarding this option. *(default: `false`)*
-* `:timeout` - The maximum amount of time in seconds that publishing a message
-  will be attempted before giving up. If the timeout is exceeded, an exception
-  will raised to be handled by your application or `error_handler`. *(default:
-  15)*
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
-Circuitry.publish('my-topic-name', obj, async: true, timeout: 20)
+Circuitry.publish('my-topic-name', obj, async: true)
 ```
 
 Alternatively, if your options hash will remain unchanged, you can build a single
@@ -230,10 +226,6 @@ The `subscribe` method also accepts options that impact instantiation of the
   asynchronous value will cause messages to be handled concurrently. Please
   refer to the [Asynchronous Support](#asynchronous-support) section for more
   details regarding this option. *(default: `false`)*
-* `:timeout` - The maximum amount of time in seconds that processing a message
-  will be attempted before giving up. If the timeout is exceeded, an exception
-  will raised to be handled by your application or `error_handler`. *(default:
-  15)*
 * `:wait_time` - The number of seconds to wait for messages while connected to
   SQS. Anything above 0 results in long-polling, while 0 results in
   short-polling. *(default: 10)*
@@ -244,7 +236,6 @@ The `subscribe` method also accepts options that impact instantiation of the
 options = {
   lock: true,
   async: true,
-  timeout: 20,
   wait_time: 60,
   batch_size: 20
 }
