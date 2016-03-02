@@ -1,7 +1,7 @@
 require 'json'
 require 'spec_helper'
 
-RSpec::Matchers.define :policy_statement_count_matcher do |count|
+RSpec::Matchers.define :policy_statement_count do |count|
   match do |actual|
     JSON.parse(actual[:attributes]['Policy'])['Statement'].length == count
   end
@@ -20,7 +20,7 @@ RSpec.describe Circuitry::Provisioning::SubscriptionCreator do
     let(:mock_sns) { double('SNS', subscribe: true) }
     let(:mock_sqs) { double('SQS', set_queue_attributes: true) }
 
-    let(:topics) { (1..3).map { |index| Circuitry::Topic.new("arn:aws:sns:us-east-1:123456789012:some-topic-name#{index+1}") } }
+    let(:topics) { (1..3).map { |index| Circuitry::Topic.new("arn:aws:sns:us-east-1:123456789012:some-topic-name#{index + 1}") } }
     let(:queue) { Circuitry::Queue.new('http://amazontest.com/howdy') }
     let(:queue_arn) { 'arn:aws:sqs:us-east-1:123456789012:howdy' }
 
@@ -31,7 +31,7 @@ RSpec.describe Circuitry::Provisioning::SubscriptionCreator do
 
     it 'sets policy attribute on sqs queue for each topic' do
       subject.subscribe_all(queue, topics)
-      expect(mock_sqs).to have_received(:set_queue_attributes).once.with(policy_statement_count_matcher(3))
+      expect(mock_sqs).to have_received(:set_queue_attributes).once.with(policy_statement_count(3))
     end
   end
 end
