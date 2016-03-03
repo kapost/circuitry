@@ -1,5 +1,4 @@
 require 'logger'
-require 'circuitry/middleware/entries/flush'
 
 module Circuitry
   class ConfigError < StandardError; end
@@ -18,12 +17,8 @@ module Circuitry
       end
 
       def middleware
-        @_middleware ||= Middleware::Chain.new do |middleware|
-          middleware.add Middleware::Entries::Flush
-        end
-
+        @_middleware ||= Middleware::Chain.new
         yield @_middleware if block_given?
-
         @_middleware
       end
 

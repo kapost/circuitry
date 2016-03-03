@@ -131,48 +131,49 @@ module Circuitry
       message = Message.new(message)
 
       logger.info("Processing message #{message.id}")
-      handle_message(message, &block)
-      delete_message(message)
+
+      handled = try_with_lock(message.id) do
+        handle_message_with_middleware(message, &block)
+      end
+
+      logger.info("Ignoring duplicate message #{message.id}") unless handled
     rescue => e
       logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
     end
 
-    def handle_message(message, &block)
-      handled = try_with_lock(message.id) do
-        middleware.invoke(message.topic.name, message.body) do
-          handle_message_with_timeout(message, &block)
-        end
+    def handle_message_with_middleware(message, &block)
+      middleware.invoke(message.topic.name, message.body) do
+        handle_message(message, &block)
+        delete_message(message)
       end
+    end
 
-      logger.info("Ignoring duplicate message #{message.id}") unless handled
+    def try_with_lock(id)
+      if lock.soft_lock(id)
+        begin
+          yield
+        rescue => e
+          lock.unlock(id)
+          raise e
+        end
+
+        lock.hard_lock(id)
+        true
+      else
+        false
+      end
     end
 
     # TODO: Don't use ruby timeout.
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
-    def handle_message_with_timeout(message, &block)
+    def handle_message(message, &block)
       Timeout.timeout(timeout) do
         block.call(message.body, message.topic.name)
       end
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e
-    end
-
-    def try_with_lock(handle)
-      if lock.soft_lock(handle)
-        begin
-          yield
-        rescue => e
-          lock.unlock(handle)
-          raise e
-        end
-
-        lock.hard_lock(handle)
-        true
-      else
-        false
-      end
     end
 
     def delete_message(message)

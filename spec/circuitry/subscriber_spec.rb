@@ -163,7 +163,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
               it 'deletes each message' do
                 subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').twice
+                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').once
               end
             end
           end

@@ -12,9 +12,9 @@ module Circuitry
         end
 
         def flush
-          pool.each { |block| safely_process(&block) }
-        ensure
-          pool.clear
+          while (block = pool.shift)
+            safely_process(&block)
+          end
         end
       end
     end
