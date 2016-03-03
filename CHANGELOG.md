@@ -1,7 +1,11 @@
+## Circuitry 3.1.1 (Mar 3, 2016)
+
+* Removed flush middleware. *Matt Huggins*
+
 ## Circuitry 3.1.0 (Mar 2, 2016)
 
-* Adding test stubs. *Matt Huggins*
-* Adding flush middleware. *Matt Huggins*
+* Added test stubs. *Matt Huggins*
+* Added flush middleware. *Matt Huggins*
 * Updated provisioning to permit publisher-only configuration (no queue name). *Matt Huggins*
 
 ## Circuitry 3.0.1 (Feb 19, 2016)
