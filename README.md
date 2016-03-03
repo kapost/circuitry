@@ -16,7 +16,7 @@ A Circuitry publisher application can broadcast events which can be fanned out t
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'circuitry', '~>2.0.0'
+gem 'circuitry', '~> 3.1'
 ```
 
 And then execute:
