@@ -1,3 +1,7 @@
+## Circuitry 3.1.2 (Unreleased)
+
+* Reimplemented subscriber-only flush middleware. *Matt Huggins*
+
 ## Circuitry 3.1.1 (Mar 3, 2016)
 
 * Removed flush middleware. *Matt Huggins*

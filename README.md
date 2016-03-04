@@ -555,6 +555,16 @@ your middleware:
 * `#clear`: Removes all middleware classes from the chain.
   * `middleware.clear`
 
+### Default Subscriber Middleware:
+
+* `Circuitry::Middleware::Entries::Flush`: ensures any pending async publishes are run after a
+  message is received.  Useful for publishes that happen as a result of processing received
+  messages.
+
+### Default Publisher Middleware:
+
+None.
+
 ## Testing
 
 Circuitry provides a simple option for testing publishing and subscribing without actually hitting
