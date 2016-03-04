@@ -26,4 +26,12 @@ RSpec.describe Circuitry::Config::PublisherSettings do
       expect(subject.aws_options).to eq(access_key_id: 'access_key', secret_access_key: 'secret_key', region: 'region')
     end
   end
+
+  describe '#middleware' do
+    it_behaves_like 'middleware settings'
+
+    it 'does not include flush middleware' do
+      expect(subject.middleware.exists?(Circuitry::Middleware::Entries::Flush)).to be false
+    end
+  end
 end
