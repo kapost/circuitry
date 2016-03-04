@@ -32,3 +32,24 @@ RSpec.shared_examples_for 'a validated setting' do |permitted_values, setting_na
     end
   end
 end
+
+RSpec.shared_examples_for 'middleware settings' do
+  it 'returns a middleware chain' do
+    expect(subject.middleware).to be_a Circuitry::Middleware::Chain
+  end
+
+  it 'yields block' do
+    called = false
+    block = ->(_chain) { called = true }
+
+    expect { subject.middleware(&block) }.to change { called }.to(true)
+  end
+
+  it 'preserves the middleware chain' do
+    subject.middleware do |chain|
+      chain.add TestMiddleware
+    end
+
+    expect(subject.middleware.exists?(TestMiddleware)).to be true
+  end
+end

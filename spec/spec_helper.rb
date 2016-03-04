@@ -27,6 +27,7 @@ require 'securerandom'
 # of increasing the boot-up time by auto-requiring all files in the support
 # directory. Alternatively, in the individual `*_spec.rb` files, manually
 # require only the support files necessary.
+Dir[File.expand_path('spec/fixtures/**/*.rb')].each { |f| require f }
 Dir[File.expand_path('spec/support/**/*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
