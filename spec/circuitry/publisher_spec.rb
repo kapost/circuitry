@@ -49,6 +49,56 @@ RSpec.describe Circuitry::Publisher, type: :model do
             subject.publish(topic_name, object)
             expect(mock_sns).to have_received(:publish).with(topic_arn: topic.arn, message: object.to_json)
           end
+
+          describe 'when a connection error occurs' do
+            let(:error) { Seahorse::Client::NetworkingError.new(StandardError.new('test error')) }
+
+            describe 'on the first try' do
+              before do
+                attempts = 0
+
+                allow(mock_sns).to receive(:publish) do
+                  attempts += 1
+                  raise error if attempts == 1
+                end
+              end
+
+              it 'logs a warning' do
+                subject.publish(topic_name, object)
+                expect(logger).to have_received(:warn).with("Error publishing attempt #1: #{error.class} (test error); retrying...")
+              end
+
+              it 'retries' do
+                subject.publish(topic_name, object)
+                expect(mock_sns).to have_received(:publish).with(topic_arn: topic.arn, message: object.to_json).twice
+              end
+
+              it 'does not raise the error' do
+                expect { subject.publish(topic_name, object) }.to_not raise_error
+              end
+            end
+
+            describe 'repeatedly' do
+              before do
+                allow(mock_sns).to receive(:publish).and_raise(error)
+              end
+
+              it 'logs 2 warnings' do
+                subject.publish(topic_name, object) rescue nil
+                expect(logger).to have_received(:warn).with("Error publishing attempt #1: #{error.class} (test error); retrying...")
+                expect(logger).to have_received(:warn).with("Error publishing attempt #2: #{error.class} (test error); retrying...")
+              end
+
+              it 'gives up after 3 tries' do
+                subject.publish(topic_name, object) rescue nil
+                expect(mock_sns).to have_received(:publish).with(topic_arn: topic.arn, message: object.to_json).thrice
+              end
+
+              it 'raises the error' do
+                expect { subject.publish(topic_name, object) }.to raise_error(error.class)
+              end
+            end
+          end
         end
 
         describe 'synchonously' do

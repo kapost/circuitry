@@ -15,6 +15,10 @@ module Circuitry
       timeout: 15
     }.freeze
 
+    CONNECTION_ERRORS = [
+      Seahorse::Client::NetworkingError
+    ].freeze
+
     attr_reader :timeout
 
     def initialize(options = {})
@@ -32,9 +36,9 @@ module Circuitry
       message = object.to_json
 
       if async?
-        process_asynchronously { publish_internal(topic_name, message) }
+        process_asynchronously { publish_message(topic_name, message) }
       else
-        publish_internal(topic_name, message)
+        publish_message(topic_name, message)
       end
     end
 
@@ -44,15 +48,21 @@ module Circuitry
 
     protected
 
-    def publish_internal(topic_name, message)
+    def publish_message(topic_name, message)
       middleware.invoke(topic_name, message) do
         # TODO: Don't use ruby timeout.
         # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
         Timeout.timeout(timeout) do
           logger.info("Publishing message to #{topic_name}")
 
-          topic = Topic.find(topic_name)
-          sns.publish(topic_arn: topic.arn, message: message)
+          handler = ->(error, attempt_number, _total_delay) do
+            logger.warn("Error publishing attempt ##{attempt_number}: #{error.class} (#{error.message}); retrying...")
+          end
+
+          with_retries(max_tries: 3, handler: handler, rescue: CONNECTION_ERRORS, base_sleep_seconds: 0, max_sleep_seconds: 0) do
+            topic = Topic.find(topic_name)
+            sns.publish(topic_arn: topic.arn, message: message)
+          end
         end
       end
     end
