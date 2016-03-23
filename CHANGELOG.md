@@ -1,3 +1,7 @@
+## Circuitry 3.1.3 (Mar 23, 2016)
+
+* Added retries for message publishing if there's an SNS connection failure. *Matt Huggins*
+
 ## Circuitry 3.1.2 (Mar 4, 2016)
 
 * Reimplemented subscriber-only flush middleware. *Matt Huggins*
