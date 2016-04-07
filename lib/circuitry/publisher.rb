@@ -16,7 +16,8 @@ module Circuitry
     }.freeze
 
     CONNECTION_ERRORS = [
-      Seahorse::Client::NetworkingError
+      ::Seahorse::Client::NetworkingError,
+      ::Aws::SNS::Errors::InternalFailure
     ].freeze
 
     attr_reader :timeout
@@ -59,7 +60,7 @@ module Circuitry
             logger.warn("Error publishing attempt ##{attempt_number}: #{error.class} (#{error.message}); retrying...")
           end
 
-          with_retries(max_tries: 3, handler: handler, rescue: CONNECTION_ERRORS, base_sleep_seconds: 0, max_sleep_seconds: 0) do
+          with_retries(max_tries: 3, handler: handler, rescue: CONNECTION_ERRORS, base_sleep_seconds: 0.05, max_sleep_seconds: 0.25) do
             topic = Topic.find(topic_name)
             sns.publish(topic_arn: topic.arn, message: message)
           end
