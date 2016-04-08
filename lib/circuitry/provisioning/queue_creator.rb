@@ -25,11 +25,11 @@ module Circuitry
       end
 
       def create_queue
-        @_queue ||= Queue.new(create_primary_queue_internal)
+        @queue ||= Queue.new(create_primary_queue_internal)
       end
 
       def create_dead_letter_queue(name, max_receive_count)
-        @_dl_queue ||= Queue.new(create_dl_queue_internal(name, max_receive_count))
+        @dl_queue ||= Queue.new(create_dl_queue_internal(name, max_receive_count))
       end
 
       private

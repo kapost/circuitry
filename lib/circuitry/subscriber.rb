@@ -108,6 +108,7 @@ module Circuitry
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
         process_messages(Array(messages), &block)
+        Circuitry.flush
       end
     end
 

@@ -29,9 +29,5 @@ RSpec.describe Circuitry::Config::PublisherSettings do
 
   describe '#middleware' do
     it_behaves_like 'middleware settings'
-
-    it 'does not include flush middleware' do
-      expect(subject.middleware.exists?(Circuitry::Middleware::Entries::Flush)).to be false
-    end
   end
 end
