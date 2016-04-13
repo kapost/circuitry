@@ -10,10 +10,18 @@ async_class = Class.new do
   def self.async_strategies
     [:fork, :thread, :batch]
   end
+
+  def config
+    Circuitry.subscriber_config
+  end
 end
 
 incomplete_async_class = Class.new do
   include Circuitry::Concerns::Async
+
+  def config
+    Circuitry.subscriber_config
+  end
 end
 
 RSpec.describe Circuitry::Concerns::Async, type: :model do
@@ -87,39 +95,50 @@ RSpec.describe Circuitry::Concerns::Async, type: :model do
   end
 
   describe '#process_asynchronously' do
-    let(:block) { ->{ } }
+    let(:block) { ->(_) { } }
+    let(:processor) { double('Circuitry::Processor', process: nil, wait: nil, is_a?: true) }
+
+    shared_examples_for 'an asynchronous processor' do
+      before do
+        allow(Circuitry::Pool).to receive(:<<)
+      end
+
+      it 'delegates to the processor' do
+        subject.process_asynchronously(&block)
+        expect(processor).to have_received(:process)
+      end
+
+      it 'adds the processor to the pool' do
+        subject.process_asynchronously(&block)
+        expect(Circuitry::Pool).to have_received(:<<).with(processor)
+      end
+    end
 
     describe 'via forking' do
       before do
         allow(subject).to receive(:async).and_return(:fork)
+        allow(Circuitry::Processors::Forker).to receive(:new).with(any_args, &block).and_return(processor)
       end
 
-      it 'delegates to fork processor' do
-        expect(Circuitry::Processors::Forker).to receive(:process).with(no_args, &block)
-        subject.process_asynchronously(&block)
-      end
+      it_behaves_like 'an asynchronous processor'
     end
 
     describe 'via threading' do
       before do
         allow(subject).to receive(:async).and_return(:thread)
+        allow(Circuitry::Processors::Threader).to receive(:new).with(any_args, &block).and_return(processor)
       end
 
-      it 'delegates to thread processor' do
-        expect(Circuitry::Processors::Threader).to receive(:process).with(no_args, &block)
-        subject.process_asynchronously(&block)
-      end
+      it_behaves_like 'an asynchronous processor'
     end
 
     describe 'via batching' do
       before do
         allow(subject).to receive(:async).and_return(:batch)
+        allow(Circuitry::Processors::Batcher).to receive(:new).with(any_args, &block).and_return(processor)
       end
 
-      it 'delegates to batch processor' do
-        expect(Circuitry::Processors::Batcher).to receive(:process).with(no_args, &block)
-        subject.process_asynchronously(&block)
-      end
+      it_behaves_like 'an asynchronous processor'
     end
   end
 end

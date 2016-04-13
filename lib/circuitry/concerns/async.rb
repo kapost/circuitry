@@ -24,7 +24,9 @@ module Circuitry
       end
 
       def process_asynchronously(&block)
-        send(:"process_via_#{async}", &block)
+        processor = send(:"process_via_#{async}", &block)
+        processor.process
+        Pool << processor
       end
 
       def async=(value)
@@ -58,15 +60,15 @@ module Circuitry
       end
 
       def process_via_fork(&block)
-        Processors::Forker.process(&block)
+        Processors::Forker.new(config, &block)
       end
 
       def process_via_thread(&block)
-        Processors::Threader.process(&block)
+        Processors::Threader.new(config, &block)
       end
 
       def process_via_batch(&block)
-        Processors::Batcher.process(&block)
+        Processors::Batcher.new(config, &block)
       end
     end
   end

@@ -68,22 +68,26 @@ module Circuitry
       end
     end
 
-    attr_writer :timeout
+    def config
+      Circuitry.publisher_config
+    end
 
     private
 
+    attr_writer :timeout
+
     def logger
-      Circuitry.publisher_config.logger
+      config.logger
     end
 
     def can_publish?
-      Circuitry.publisher_config.aws_options.values.all? do |value|
+      config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end
 
     def middleware
-      Circuitry.publisher_config.middleware
+      config.middleware
     end
   end
 end
