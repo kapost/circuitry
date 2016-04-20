@@ -7,9 +7,22 @@ Decouple ruby applications using [SNS](http://aws.amazon.com/sns/) fanout with [
 
 A Circuitry publisher application can broadcast events which can be fanned out to any number of SQS queues. This technique is a [common approach](http://docs.aws.amazon.com/sns/latest/dg/SNS_Scenarios.html) to implementing an enterprise message bus. For example, applications which care about billing or new user onboarding can react when a user signs up, without the origin web application being concerned with those domains. In this way, new capabilities can be connected to an enterprise system without change proliferation.
 
-## How is Circuitry different from Shoryuken?
+## Features
 
-[Shoryuken](https://github.com/phstc/shoryuken) is a way to leverage SQS to execute workloads later within the same application. Circuitry is a way to execute any number of workloads in different applications after an event has taken place.
+What circuitry provides:
+
+* *Decoupling:* apps can send and receive messages to each other without explicitly coding destinations into your app.
+* *Fan-out:* multiple queues (i.e.: multiple apps) can receive the same message by publishing it a single time.
+* *Reliability:* if your app goes down (intentionally or otherwise), messages will be waiting in the queue whenever it starts up again.
+* *Speed:* because it's built on AWS, message delivery and receipt is *fast*.
+* *Duplication:* although SQS messages can be delivered multiple times, circuitry safeguards to ensure they're only received by your app once.
+* *Retries:* if a received message fails to be processed, it will be retried (unless otherwise configured).
+* *Customization:* configure your publisher and subscriber to behave the way each app independently expects.
+
+What circuitry does not provide:
+
+* *Ordering:* messages may not arrive in the order they were sent.
+* *Scheduling:* messages are processed as they're received.
 
 ## Installation
 
