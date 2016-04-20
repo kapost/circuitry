@@ -1,3 +1,11 @@
+## Circuitry 3.x.x (TBD)
+
+* Fixed issue with `circuitry help` missing dependency. *Matt Huggins*
+* Fixed issue with `circuitry:setup` rake task when no topics are defined. *Matt Huggins*
+* Fixed issues with `circuitry:setup` rake task in vanilla Ruby projects. *Matt Huggins*
+* Removed subscriber flush middleware in favor of an inline flush. *Matt Huggins*
+* Added SNS internal failure as a retriable error. *Matt Huggins*
+
 ## Circuitry 3.1.3 (Mar 23, 2016)
 
 * Added retries for message publishing if there's an SNS connection failure. *Matt Huggins*
