@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock
+    attr_reader :config, :timeout, :wait_time, :batch_size, :lock
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -30,7 +30,7 @@ module Circuitry
       options = DEFAULT_OPTIONS.merge(options)
 
       self.subscribed = false
-      self.queue = Queue.find(config.queue_name).url
+      self.config = options[:config] || Circuitry.subscriber_config
 
       %i[lock async timeout wait_time batch_size].each do |sym|
         send(:"#{sym}=", options[sym])
@@ -41,35 +41,33 @@ module Circuitry
 
     def subscribe(&block)
       raise ArgumentError, 'block required' if block.nil?
+      raise SubscribeError, 'already subscribed' if subscribed?
       raise SubscribeError, 'AWS configuration is not set' unless can_subscribe?
 
-      logger.info("Subscribing to queue: #{queue}")
-
-      self.subscribed = true
+      subscribed!
       poll(&block)
-      self.subscribed = false
-
-      logger.info("Unsubscribed from queue: #{queue}")
     rescue *CONNECTION_ERRORS => e
       logger.error("Connection error to queue: #{queue}: #{e}")
       raise SubscribeError, e.message
+    ensure
+      unsubscribed!
     end
 
     def subscribed?
       subscribed
     end
 
+    def queue
+      @queue ||= Queue.find(config.queue_name).url
+    end
+
     def self.async_strategies
       super - [:batch]
     end
 
-    def self.default_async_strategy
-      Circuitry.subscriber_config.async_strategy
-    end
-
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_writer :config, :timeout, :wait_time, :batch_size
     attr_accessor :subscribed
 
     def lock=(value)
@@ -81,10 +79,6 @@ module Circuitry
               end
 
       @lock = value
-    end
-
-    def config
-      Circuitry.subscriber_config
     end
 
     private
@@ -101,6 +95,16 @@ module Circuitry
           self.subscribed = false
         end
       end
+    end
+
+    def subscribed!
+      logger.info("Subscribing to queue: #{queue}") unless subscribed?
+      self.subscribed = true
+    end
+
+    def unsubscribed!
+      logger.info("Unsubscribed from queue: #{queue}") if subscribed?
+      self.subscribed = false
     end
 
     def poll(&block)

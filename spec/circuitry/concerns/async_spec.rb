@@ -3,21 +3,9 @@ require 'spec_helper'
 async_class = Class.new do
   include Circuitry::Concerns::Async
 
-  def self.default_async_strategy
-    :thread
-  end
-
   def self.async_strategies
     [:fork, :thread, :batch]
   end
-
-  def config
-    Circuitry.subscriber_config
-  end
-end
-
-incomplete_async_class = Class.new do
-  include Circuitry::Concerns::Async
 
   def config
     Circuitry.subscriber_config
@@ -48,20 +36,8 @@ RSpec.describe Circuitry::Concerns::Async, type: :model do
     end
 
     describe 'with true' do
-      describe 'when the class has defined a default async strategy' do
-        it 'sets async to the default value' do
-          expect(subject.class).to receive(:default_async_strategy).at_least(:once).and_call_original
-          subject.async = true
-          expect(subject.async).to eq subject.class.default_async_strategy
-        end
-      end
-
-      describe 'when the class has not defined a default async strategy' do
-        subject { incomplete_async_class.new }
-
-        it 'raises an error' do
-          expect { subject.async = true }.to raise_error(NotImplementedError)
-        end
+      it 'sets async to the default value' do
+        expect { subject.async = true }.to change { subject.async }.to(subject.config.async_strategy)
       end
     end
 
