@@ -1,6 +1,7 @@
 namespace :circuitry do
   desc 'Create subscriber queues and subscribe queue to topics'
-  task setup: :environment do
+  task :setup do
+    require 'logger'
     require 'circuitry/provisioning'
 
     logger = Logger.new(STDOUT)

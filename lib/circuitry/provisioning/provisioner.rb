@@ -1,3 +1,4 @@
+require 'circuitry'
 require 'circuitry/provisioning/queue_creator'
 require 'circuitry/provisioning/topic_creator'
 require 'circuitry/provisioning/subscription_creator'
