@@ -24,6 +24,10 @@ What circuitry does not provide:
 * *Ordering:* messages may not arrive in the order they were sent.
 * *Scheduling:* messages are processed as they're received.
 
+## Example
+
+A [circuitry-example](https://github.com/kapost/circuitry-example) app is available to quickly try the gem on your own AWS account.
+
 ## Installation
 
 Add this line to your application's Gemfile:
