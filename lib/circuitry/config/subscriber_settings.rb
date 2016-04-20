@@ -1,6 +1,5 @@
 require 'virtus'
 require 'circuitry/config/shared_settings'
-require 'circuitry/middleware/entries/flush'
 
 module Circuitry
   module Config
@@ -27,16 +26,6 @@ module Circuitry
         unless value.is_a?(Circuitry::Locks::Base)
           raise ConfigError, "invalid lock strategy \"#{value.inspect}\""
         end
-      end
-
-      def middleware
-        @middleware ||= Middleware::Chain.new do |middleware|
-          middleware.add Middleware::Entries::Flush
-        end
-
-        yield @middleware if block_given?
-
-        @middleware
       end
     end
   end

@@ -16,6 +16,12 @@ module Circuitry
         base.attribute :async_strategy, Symbol, default: ->(_page, _att) { :fork }
       end
 
+      def middleware
+        @middleware ||= Middleware::Chain.new
+        yield @middleware if block_given?
+        @middleware
+      end
+
       def aws_options
         {
           access_key_id:     access_key,

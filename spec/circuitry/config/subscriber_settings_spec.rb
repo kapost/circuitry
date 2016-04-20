@@ -27,9 +27,5 @@ RSpec.describe Circuitry::Config::SubscriberSettings do
 
   describe '#middleware' do
     it_behaves_like 'middleware settings'
-
-    it 'includes flush middleware' do
-      expect(subject.middleware.exists?(Circuitry::Middleware::Entries::Flush)).to be true
-    end
   end
 end

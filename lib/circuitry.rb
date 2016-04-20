@@ -18,23 +18,23 @@ require 'circuitry/version'
 module Circuitry
   class << self
     def subscriber_config
-      @_sub_config ||= Config::SubscriberSettings.new
-      yield @_sub_config if block_given?
-      @_sub_config
+      @sub_config ||= Config::SubscriberSettings.new
+      yield @sub_config if block_given?
+      @sub_config
     end
 
     def subscriber_config=(options)
-      @_sub_config = Config::SubscriberSettings.new(options)
+      @sub_config = Config::SubscriberSettings.new(options)
     end
 
     def publisher_config
-      @_pub_config ||= Config::PublisherSettings.new
-      yield @_pub_config if block_given?
-      @_pub_config
+      @pub_config ||= Config::PublisherSettings.new
+      yield @pub_config if block_given?
+      @pub_config
     end
 
     def publisher_config=(options)
-      @_pub_config = Config::PublisherSettings.new(options)
+      @pub_config = Config::PublisherSettings.new(options)
     end
 
     def publish(topic_name, object, options = {})
