@@ -154,6 +154,8 @@ two methods: the circuitry CLI or the `rake circuitry:setup` task. The rake task
 subscriber queue and publishing topics that are configured within your application.
 
 ```ruby
+require 'circuitry/tasks'
+
 Circuitry.subscriber_config do |c|
   c.queue_name = 'myapp-production-events'
   c.topic_names = ['theirapp-production-stuff-created', 'theirapp-production-stuff-deleted']
