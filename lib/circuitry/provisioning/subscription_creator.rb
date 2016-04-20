@@ -26,10 +26,10 @@ module Circuitry
         topics.each do |topic|
           sns.subscribe(topic_arn: topic.arn, endpoint: queue.arn, protocol: 'sqs')
         end
-        sqs.set_queue_attributes(
-          queue_url: queue.url,
-          attributes: build_policy
-        )
+
+        if topics.any?
+          sqs.set_queue_attributes(queue_url: queue.url, attributes: build_policy)
+        end
       end
 
       private
