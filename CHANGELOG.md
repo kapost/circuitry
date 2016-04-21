@@ -1,4 +1,4 @@
-## Circuitry 3.x.x (TBD)
+## Circuitry 3.1.4 (Apr 21, 2016)
 
 * Fixed issue with `circuitry help` missing dependency. *Matt Huggins*
 * Fixed issue with `circuitry:setup` rake task when no topics are defined. *Matt Huggins*
