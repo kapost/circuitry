@@ -9,4 +9,8 @@ namespace :circuitry do
 
     Circuitry::Provisioning.provision(logger: logger)
   end
+
+  if Rake::Task.task_defined?(:environment)
+    task setup: :environment
+  end
 end
