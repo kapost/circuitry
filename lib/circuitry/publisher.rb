@@ -77,6 +77,8 @@ module Circuitry
     end
 
     def can_publish?
+      return true if Circuitry.publisher_config.use_iam_profile
+
       Circuitry.publisher_config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
