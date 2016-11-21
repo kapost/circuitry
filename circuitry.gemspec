@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'thor'
 
   spec.add_development_dependency 'bundler', '~> 1.8'
-  spec.add_development_dependency 'codeclimate-test-reporter'
+  spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'connection_pool'
   spec.add_development_dependency 'dalli'
   spec.add_development_dependency 'memcache_mock'
