@@ -1,3 +1,12 @@
+## Circuitry 3.1.6 (Nov 21, 2016)
+
+* Fixed `environment` prerequisite task for `circuitry:setup` when using a more recent version
+  of rake. *Matt Huggins*
+
+## Circuitry 3.1.5 (May 4, 2016)
+
+* Added optional `environment` prerequisite to `circuitry:setup` rake task. *Matt Huggins*
+
 ## Circuitry 3.1.4 (Apr 21, 2016)
 
 * Fixed issue with `circuitry help` missing dependency. *Matt Huggins*

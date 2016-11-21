@@ -7,10 +7,10 @@ namespace :circuitry do
     logger = Logger.new(STDOUT)
     logger.level = Logger::INFO
 
-    Circuitry::Provisioning.provision(logger: logger)
-  end
+    if Rake::Task.task_defined?(:environment)
+      Rake::Task[:environment].invoke
+    end
 
-  if Rake::Task.task_defined?(:environment)
-    task setup: :environment
+    Circuitry::Provisioning.provision(logger: logger)
   end
 end
