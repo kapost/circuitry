@@ -112,105 +112,124 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         end
 
         shared_examples_for 'a valid subscribe request' do
-          let(:messages) do
-            [
+          describe 'when the batch_size is 1 and messages is not an Array' do
+            let(:messages) do
+              double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+            end
+            let(:options) { { batch_size: 1 } }
+
+            it 'processes the message' do
+              expect(block).to receive(:call).with('Foo', 'test-event-task-changed')
+              subject.subscribe(&block)
+            end
+
+            it 'deletes the message' do
+              subject.subscribe(&block)
+              expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+            end
+          end
+
+          describe 'when the batch_size is greater than 1' do
+            let(:messages) do
+              [
                 double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
                 double('Aws::SQS::Types::Message', message_id: 'two', receipt_handle: 'delete-two', body: { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json),
-            ]
-          end
-
-          it 'processes each message' do
-            expect(block).to receive(:call).with('Foo', 'test-event-task-changed')
-            expect(block).to receive(:call).with('Bar', 'test-event-comment')
-            subject.subscribe(&block)
-          end
-
-          it 'deletes each message' do
-            subject.subscribe(&block)
-            expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
-            expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
-          end
-
-          describe 'when a duplicate message is received' do
-            let(:options) { { async: async, lock: lock } }
-            let(:messages) do
-              2.times.map do
-                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
-              end
+              ]
             end
 
-            describe 'when locking is disabled' do
-              let(:lock) { false }
-
-              it 'processes the duplicate' do
-                expect(block).to receive(:call).with('Foo', 'test-event-task-changed').twice
-                subject.subscribe(&block)
-              end
-
-              it 'deletes each message' do
-                subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').twice
-              end
-            end
-
-            describe 'when locking is enabled' do
-              let(:lock) { true }
-
-              it 'does not process the duplicate' do
-                expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
-                subject.subscribe(&block)
-              end
-
-              it 'deletes each message' do
-                subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').once
-              end
-            end
-          end
-
-          describe 'when processing fails' do
-            let(:block) { ->(message, topic) { raise error if message == 'Foo' } }
-            let(:error) { StandardError.new('test error') }
-
-            it 'does not raise the error' do
-              expect { subject.subscribe(&block) }.to_not raise_error
-            end
-
-            it 'logs error for failing messages' do
+            it 'processes each message' do
+              expect(block).to receive(:call).with('Foo', 'test-event-task-changed')
+              expect(block).to receive(:call).with('Bar', 'test-event-comment')
               subject.subscribe(&block)
-              expect(logger).to have_received(:error).with('Error handling message one: test error')
             end
 
-            it 'does not log error for successful messages' do
+            it 'deletes each message' do
               subject.subscribe(&block)
-              expect(logger).to_not have_received(:error).with('Error handling message two: test error')
-            end
-
-            it 'deletes successful messages' do
-              subject.subscribe(&block)
+              expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
               expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
             end
 
-            it 'does not delete failing messages' do
-              subject.subscribe(&block)
-              expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
-            end
-
-            it 'unlocks failing messages' do
-              expect(subject.lock).to receive(:unlock).with('one')
-              subject.subscribe(&block)
-            end
-
-            describe 'when error logger is configured' do
-              let(:error_handler) { ->(_) { } }
-
-              before do
-                allow(subject).to receive(:error_handler).and_return(error_handler)
+            describe 'when a duplicate message is received' do
+              let(:options) { { async: async, lock: lock } }
+              let(:messages) do
+                2.times.map do
+                  double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+                end
               end
 
-              it 'calls error handler' do
-                expect(error_handler).to receive(:call).with(error)
+              describe 'when locking is disabled' do
+                let(:lock) { false }
+
+                it 'processes the duplicate' do
+                  expect(block).to receive(:call).with('Foo', 'test-event-task-changed').twice
+                  subject.subscribe(&block)
+                end
+
+                it 'deletes each message' do
+                  subject.subscribe(&block)
+                  expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').twice
+                end
+              end
+
+              describe 'when locking is enabled' do
+                let(:lock) { true }
+
+                it 'does not process the duplicate' do
+                  expect(block).to receive(:call).with('Foo', 'test-event-task-changed').once
+                  subject.subscribe(&block)
+                end
+
+                it 'deletes each message' do
+                  subject.subscribe(&block)
+                  expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one').once
+                end
+              end
+            end
+
+            describe 'when processing fails' do
+              let(:block) { ->(message, topic) { raise error if message == 'Foo' } }
+              let(:error) { StandardError.new('test error') }
+
+              it 'does not raise the error' do
+                expect { subject.subscribe(&block) }.to_not raise_error
+              end
+
+              it 'logs error for failing messages' do
                 subject.subscribe(&block)
+                expect(logger).to have_received(:error).with('Error handling message one: test error')
+              end
+
+              it 'does not log error for successful messages' do
+                subject.subscribe(&block)
+                expect(logger).to_not have_received(:error).with('Error handling message two: test error')
+              end
+
+              it 'deletes successful messages' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
+              end
+
+              it 'does not delete failing messages' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+              end
+
+              it 'unlocks failing messages' do
+                expect(subject.lock).to receive(:unlock).with('one')
+                subject.subscribe(&block)
+              end
+
+              describe 'when error logger is configured' do
+                let(:error_handler) { ->(_) { } }
+
+                before do
+                  allow(subject).to receive(:error_handler).and_return(error_handler)
+                end
+
+                it 'calls error handler' do
+                  expect(error_handler).to receive(:call).with(error)
+                  subject.subscribe(&block)
+                end
               end
             end
           end
@@ -237,8 +256,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
           let(:options) { { async: async } }
           let(:messages) do
             [
-                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
-                double('Aws::SQS::Types::Message', message_id: 'two', receipt_handle: 'delete-two', body: { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json),
+              double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
+              double('Aws::SQS::Types::Message', message_id: 'two', receipt_handle: 'delete-two', body: { 'Message' => 'Bar'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-comment' }.to_json),
             ]
           end
 
