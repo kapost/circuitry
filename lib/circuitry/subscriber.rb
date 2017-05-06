@@ -107,6 +107,7 @@ module Circuitry
       end
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
+        messages = [messages] unless messages.is_a?(Array)
         process_messages(Array(messages), &block)
         Circuitry.flush
       end
