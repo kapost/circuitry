@@ -1,3 +1,7 @@
+## Circuitry 3.2.0 (May 6, 2017)
+
+* Fixed processing for `batch_size` of 1. *Xi Zhang*
+
 ## Circuitry 3.1.6 (Nov 21, 2016)
 
 * Fixed `environment` prerequisite task for `circuitry:setup` when using a more recent version
