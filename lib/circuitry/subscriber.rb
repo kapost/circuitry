@@ -70,8 +70,8 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout_on_fail
-    attr_accessor :subscribed
+    attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_accessor :subscribed, :ignore_visibility_timeout_on_fail
 
     def lock=(value)
       value = case value
@@ -182,7 +182,7 @@ module Circuitry
 
     def change_message_visibility(message)
       logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
-      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, seconds: 0)
+      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
     end
 
     def delete_message(message)
