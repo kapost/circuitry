@@ -19,7 +19,8 @@ module Circuitry
       async: false,
       timeout: 15,
       wait_time: 10,
-      batch_size: 10
+      batch_size: 10,
+      ignore_visibility_timeout_on_fail: false
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -32,7 +33,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout_on_fail].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -69,15 +70,15 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout_on_fail
     attr_accessor :subscribed
 
     def lock=(value)
       value = case value
-              when true then Circuitry.subscriber_config.lock_strategy
-              when false then Circuitry::Locks::NOOP.new
-              when Circuitry::Locks::Base then value
-              else raise ArgumentError, lock_value_error(value)
+                when true then Circuitry.subscriber_config.lock_strategy
+                when false then Circuitry::Locks::NOOP.new
+                when Circuitry::Locks::Base then value
+                else raise ArgumentError, lock_value_error(value)
               end
 
       @lock = value
@@ -140,6 +141,7 @@ module Circuitry
 
       logger.info("Ignoring duplicate message #{message.id}") unless handled
     rescue => e
+      change_message_visibility(message) if ignore_visibility_timeout_on_fail
       logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
     end
@@ -176,6 +178,11 @@ module Circuitry
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e
+    end
+
+    def change_message_visibility(message)
+      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
+      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, seconds: 0)
     end
 
     def delete_message(message)
