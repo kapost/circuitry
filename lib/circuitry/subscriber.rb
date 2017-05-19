@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout_on_fail
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -20,7 +20,7 @@ module Circuitry
       timeout: 15,
       wait_time: 10,
       batch_size: 10,
-      ignore_visibility_timeout_on_fail: false
+      ignore_visibility_timeout: false
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -33,7 +33,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout_on_fail].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -70,7 +70,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout_on_fail
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout
     attr_accessor :subscribed
 
     def lock=(value)
@@ -141,7 +141,7 @@ module Circuitry
 
       logger.info("Ignoring duplicate message #{message.id}") unless handled
     rescue => e
-      change_message_visibility(message) if ignore_visibility_timeout_on_fail
+      change_message_visibility(message) if ignore_visibility_timeout
       logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
     end

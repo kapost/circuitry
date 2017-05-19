@@ -190,11 +190,11 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               let(:block) { ->(message, topic) { raise error if message == 'Foo' } }
               let(:error) { StandardError.new('test error') }
 
-              describe 'when ignore_visibility_timeout_on_fail is set to true' do
+              describe 'when ignore_visibility_timeout is set to true' do
                 let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
                 let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, change_message_visibility: true) }
                 let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
-                let(:options) { { ignore_visibility_timeout_on_fail: true } }
+                let(:options) { { ignore_visibility_timeout: true } }
                 let(:subject) { described_class.new(options) }
 
                 before do
