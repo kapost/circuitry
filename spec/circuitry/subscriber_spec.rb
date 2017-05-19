@@ -190,6 +190,29 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               let(:block) { ->(message, topic) { raise error if message == 'Foo' } }
               let(:error) { StandardError.new('test error') }
 
+              describe 'when ignore_visibility_timeout_on_fail is set to true' do
+                let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
+                let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, change_message_visibility: true) }
+                let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
+                let(:options) { { ignore_visibility_timeout_on_fail: true } }
+                let(:subject) { described_class.new(options) }
+
+                before do
+                  allow(Circuitry.subscriber_config).to receive(:logger).and_return(logger)
+                  allow(subject).to receive(:sqs).and_return(mock_sqs)
+                  allow(Aws::SQS::QueuePoller).to receive(:new).with(queue, client: mock_sqs).and_return(mock_poller)
+
+                  allow(mock_poller).to receive(:poll) do |&block|
+                    block.call(messages)
+                  end
+                end
+
+                it 'changes the messages visibility to zero' do
+                  subject.subscribe(&block)
+                  expect(mock_sqs).to have_received(:change_message_visibility).with(queue_url: queue, receipt_handle: 'delete-one', visibility_timeout: 0)
+                end
+              end
+
               it 'does not raise the error' do
                 expect { subject.subscribe(&block) }.to_not raise_error
               end

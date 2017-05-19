@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout_on_fail
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -70,8 +70,8 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size
-    attr_accessor :subscribed, :ignore_visibility_timeout_on_fail
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout_on_fail
+    attr_accessor :subscribed
 
     def lock=(value)
       value = case value
