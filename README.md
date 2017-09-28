@@ -116,9 +116,15 @@ production:
 Available configuration options for *both* subscriber and publisher applications include:
 
 * `access_key`: The AWS access key ID that has access to SNS publishing and/or
-  SQS subscribing. *(required)*
+  SQS subscribing. *(required unless using iam profile)*
 * `secret_key`: The AWS secret access key that has access to SNS publishing
-  and/or SQS subscribing. *(required)*
+  and/or SQS subscribing. *(required unless using iam profile)*
+* `use_iam_profile`: Whether or not to use an iam profile for authenticating to AWS.
+  This will only work when running your application inside of an AWS instance.
+  Accepts `true` or `false`
+  Please refer to the [AWS Docs](http://docs.aws.amazon.com/sdk-for-ruby/v2/developer-guide/setup-config.html#aws-ruby-sdk-credentials-iam)
+  for more details about using iam profiles for authentication.
+  *(required unless using access and secret keys, default: `false`)*
 * `region`: The AWS region that your SNS and/or SQS account lives in.
   *(optional, default: "us-east-1")*
 * `logger`: The logger to use for informational output, warnings, and error
