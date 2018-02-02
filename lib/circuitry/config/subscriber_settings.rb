@@ -26,6 +26,7 @@ module Circuitry
         unless value.is_a?(Circuitry::Locks::Base)
           raise ConfigError, "invalid lock strategy \"#{value.inspect}\""
         end
+        super
       end
     end
   end
