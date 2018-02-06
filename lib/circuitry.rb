@@ -7,6 +7,7 @@ require 'circuitry/locks/memory'
 require 'circuitry/locks/noop'
 require 'circuitry/locks/redis'
 require 'circuitry/middleware/chain'
+require 'circuitry/pool'
 require 'circuitry/processor'
 require 'circuitry/processors/batcher'
 require 'circuitry/processors/forker'
@@ -46,9 +47,7 @@ module Circuitry
     end
 
     def flush
-      Processors.constants.each do |const|
-        Processors.const_get(const).flush
-      end
+      Pool.flush
     end
   end
 end

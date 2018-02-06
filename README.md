@@ -208,6 +208,8 @@ The `publish` method also accepts options that impact instantiation of the
   will be attempted before giving up. If the timeout is exceeded, an exception
   will raised to be handled by your application or `error_handler`. *(default:
   15)*
+* `:config` - A custom configuration object. Generally this option can be ignored.
+  *(default: `Circuitry.publisher_config`)*
 
 ```ruby
 obj = { foo: 'foo', bar: 'bar' }
@@ -258,6 +260,8 @@ The `subscribe` method also accepts options that impact instantiation of the
   short-polling. *(default: 10)*
 * `:batch_size` - The number of messages to retrieve in a single SQS request.
   *(default: 10)*
+* `:config` - A custom configuration object. Generally this option can be ignored.
+  *(default: `Circuitry.subscriber_config`)*
 
 ```ruby
 options = {

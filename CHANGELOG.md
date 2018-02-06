@@ -13,6 +13,7 @@
 
 ## Circuitry 3.1.4 (Apr 21, 2016)
 
+* Fixed async publisher to use correct configuration options. *Matt Huggins*
 * Fixed issue with `circuitry help` missing dependency. *Matt Huggins*
 * Fixed issue with `circuitry:setup` rake task when no topics are defined. *Matt Huggins*
 * Fixed issues with `circuitry:setup` rake task in vanilla Ruby projects. *Matt Huggins*

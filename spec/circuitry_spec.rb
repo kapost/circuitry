@@ -58,18 +58,8 @@ RSpec.describe Circuitry, type: :model do
   end
 
   describe '.flush' do
-    it 'flushes batches' do
-      expect(Circuitry::Processors::Batcher).to receive(:flush)
-      subject.flush
-    end
-
-    it 'flushes forks' do
-      expect(Circuitry::Processors::Forker).to receive(:flush)
-      subject.flush
-    end
-
-    it 'flushes threads' do
-      expect(Circuitry::Processors::Threader).to receive(:flush)
+    it 'flushes the pool' do
+      expect(Circuitry::Pool).to receive(:flush)
       subject.flush
     end
   end

@@ -2,23 +2,20 @@ require 'circuitry/processor'
 
 module Circuitry
   module Processors
-    module Threader
-      class << self
-        include Processor
+    class Threader < Processor
+      def process
+        thread
+      end
 
-        def process(&block)
-          raise ArgumentError, 'no block given' unless block_given?
+      def wait
+        thread.join
+      end
 
-          pool << Thread.new do
-            safely_process(&block)
-            on_exit.call if on_exit
-          end
-        end
+      private
 
-        def flush
-          pool.each(&:join)
-        ensure
-          pool.clear
+      def thread
+        @thread ||= Thread.new do
+          safely_process(&block)
         end
       end
     end

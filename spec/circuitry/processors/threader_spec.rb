@@ -1,48 +1,38 @@
 require 'spec_helper'
 
 RSpec.describe Circuitry::Processors::Threader, type: :model do
-  subject { described_class }
+  subject { described_class.new(config, &block) }
+
+  let(:config) { double('Circuitry::PublisherConfig', logger: nil, error_handler: nil, on_async_exit: nil) }
+  let(:block) { ->{ } }
 
   it { is_expected.to be_a Circuitry::Processor }
 
   it_behaves_like 'an asyncronous processor'
 
-  describe '.process' do
-    let(:pool) { double('Array', '<<': []) }
-    let(:block) { ->{ } }
-    let(:thread) { double('Thread', join: true) }
-
+  describe '#process' do
     before do
-      allow(subject).to receive(:pool).and_return(pool)
       allow(Thread).to receive(:new).and_return(thread)
     end
 
-    it 'wraps the block in a thread' do
-      subject.process(&block)
-      expect(Thread).to have_received(:new).with(no_args, &block)
-    end
+    let(:thread) { double('Thread', join: true) }
 
-    it 'adds the thread to the pool' do
-      subject.process(&block)
-      expect(pool).to have_received(:<<).with(thread)
+    it 'wraps the block in a thread' do
+      subject.process
+      expect(Thread).to have_received(:new).with(no_args, &block)
     end
   end
 
-  describe '.flush' do
-    let(:pool) { [double('Thread', join: true), double('Thread', join: true)] }
-
+  describe '#wait' do
     before do
-      allow(subject).to receive(:pool).and_return(pool)
+      allow(Thread).to receive(:new).and_return(thread)
     end
 
-    it 'joins each thread' do
-      subject.flush
-      pool.each { |thread| expect(thread).to have_received(:join) }
-    end
+    let(:thread) { double('Thread', join: true) }
 
-    it 'clears the pool' do
-      subject.flush
-      expect(pool).to be_empty
+    it 'joins the thread' do
+      subject.wait
+      expect(thread).to have_received(:join)
     end
   end
 end

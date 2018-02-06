@@ -17,20 +17,18 @@ module Circuitry
         def async_strategies
           [:fork, :thread, :batch]
         end
-
-        def default_async_strategy
-          raise NotImplementedError, "#{name} must implement class method `default_async_strategy`"
-        end
       end
 
       def process_asynchronously(&block)
-        send(:"process_via_#{async}", &block)
+        processor = send(:"process_via_#{async}", &block)
+        processor.process
+        Pool << processor
       end
 
       def async=(value)
         value = case value
                 when false, nil then false
-                when true then self.class.default_async_strategy
+                when true then config.async_strategy
                 when *self.class.async_strategies then value
                 else raise ArgumentError, async_value_error(value)
                 end
@@ -58,15 +56,15 @@ module Circuitry
       end
 
       def process_via_fork(&block)
-        Processors::Forker.process(&block)
+        Processors::Forker.new(config, &block)
       end
 
       def process_via_thread(&block)
-        Processors::Threader.process(&block)
+        Processors::Threader.new(config, &block)
       end
 
       def process_via_batch(&block)
-        Processors::Batcher.process(&block)
+        Processors::Batcher.new(config, &block)
       end
     end
   end

@@ -20,11 +20,12 @@ module Circuitry
       ::Aws::SNS::Errors::InternalFailure
     ].freeze
 
-    attr_reader :timeout
+    attr_reader :config, :timeout
 
     def initialize(options = {})
       options = DEFAULT_OPTIONS.merge(options)
 
+      self.config = options[:config] || Circuitry.publisher_config
       self.async = options[:async]
       self.timeout = options[:timeout]
     end
@@ -41,10 +42,6 @@ module Circuitry
       else
         publish_message(topic_name, message)
       end
-    end
-
-    def self.default_async_strategy
-      Circuitry.publisher_config.async_strategy
     end
 
     protected
@@ -68,22 +65,22 @@ module Circuitry
       end
     end
 
-    attr_writer :timeout
-
     private
 
+    attr_writer :config, :timeout
+
     def logger
-      Circuitry.publisher_config.logger
+      config.logger
     end
 
     def can_publish?
-      Circuitry.publisher_config.aws_options.values.all? do |value|
+      config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
     end
 
     def middleware
-      Circuitry.publisher_config.middleware
+      config.middleware
     end
   end
 end

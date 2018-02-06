@@ -2,20 +2,20 @@ require 'circuitry/processor'
 
 module Circuitry
   module Processors
-    module Forker
-      class << self
-        include Processor
+    class Forker < Processor
+      def process
+        Process.detach(pid)
+      end
 
-        def process(&block)
-          pid = fork do
-            safely_process(&block)
-            on_exit.call if on_exit
-          end
+      def wait
+        # noop
+      end
 
-          Process.detach(pid)
-        end
+      private
 
-        def flush
+      def pid
+        @pid ||= fork do
+          safely_process(&block)
         end
       end
     end
