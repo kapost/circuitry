@@ -1,3 +1,7 @@
+## Circuitry 3.2.1 (April 5, 2018)
+
+* Update AWS SDK to version 3 and use module sdk gems. *thogg4*
+
 ## Circuitry 3.2.0 (May 6, 2017)
 
 * Fixed processing for `batch_size` of 1. *Xi Zhang*
