@@ -1,4 +1,4 @@
-## Circuitry 3.2.1 (April 5, 2018)
+## Unreleased
 
 * Update AWS SDK to version 3 and use module sdk gems. *thogg4*
 
