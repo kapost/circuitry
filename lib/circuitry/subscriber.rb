@@ -192,6 +192,8 @@ module Circuitry
     end
 
     def can_subscribe?
+      return true if Circuitry.subscriber_config.use_iam_profile
+
       Circuitry.subscriber_config.aws_options.values.all? do |value|
         !value.nil? && !value.empty?
       end
