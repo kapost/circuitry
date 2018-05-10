@@ -129,6 +129,29 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             end
           end
 
+          describe 'when using async_delete' do
+            let(:options) { { async_delete: true } }
+            let(:messages) do
+              double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+            end
+
+            describe 'when never calling delete' do
+              it 'does not delete the messages' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+              end
+            end
+
+            describe 'when calling delete in the handler' do
+              let(:block) { ->(_, _, delete) { delete.call } }
+
+              it 'deletes the message' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+              end
+            end
+          end
+
           describe 'when the batch_size is greater than 1' do
             let(:messages) do
               [

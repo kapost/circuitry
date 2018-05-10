@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :async_delete
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -20,7 +20,8 @@ module Circuitry
       timeout: 15,
       wait_time: 10,
       batch_size: 10,
-      ignore_visibility_timeout: false
+      ignore_visibility_timeout: false,
+      async_delete: false
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -33,7 +34,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout async_delete].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -70,7 +71,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :async_delete
     attr_accessor :subscribed
 
     def lock=(value)
@@ -149,7 +150,7 @@ module Circuitry
     def handle_message_with_middleware(message, &block)
       middleware.invoke(message.topic.name, message.body) do
         handle_message(message, &block)
-        delete_message(message)
+        delete_message(message) unless async_delete
       end
     end
 
@@ -173,7 +174,11 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
-        block.call(message.body, message.topic.name)
+        if async_delete
+          block.call(message.body, message.topic.name, lambda { delete_message(message) })
+        else
+          block.call(message.body, message.topic.name)
+        end
       end
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
