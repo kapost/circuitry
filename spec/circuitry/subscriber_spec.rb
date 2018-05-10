@@ -129,7 +129,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             end
           end
 
-          describe 'when using auto_delete' do
+          describe 'when disabling auto_delete' do
             let(:options) { { auto_delete: false } }
             let(:messages) do
               double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
