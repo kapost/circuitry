@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :auto_delete
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :auto_delete, :before_message
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -21,7 +21,8 @@ module Circuitry
       wait_time: 10,
       batch_size: 10,
       ignore_visibility_timeout: false,
-      auto_delete: true
+      auto_delete: true,
+      before_message: lambda {},
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -34,7 +35,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout auto_delete].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout auto_delete before_message].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -76,7 +77,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :auto_delete
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :auto_delete, :before_message
     attr_accessor :subscribed
 
     def lock=(value)
@@ -150,13 +151,7 @@ module Circuitry
       change_message_visibility(message) if ignore_visibility_timeout
       logger.error("Error processing message #{message.id}: #{e}")
 
-      if error_handler
-        if error_handler.arity == 1
-          error_handler.call(e)
-        else
-          error_handler.call(e, message)
-        end
-      end
+      error_handler.call(e)
     end
 
     def handle_message_with_middleware(message, &block)
@@ -186,6 +181,7 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
+        before_message.call(message)
         if auto_delete
           block.call(message.body, message.topic.name)
         else
