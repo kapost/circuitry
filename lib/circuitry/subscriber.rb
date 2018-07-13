@@ -151,7 +151,7 @@ module Circuitry
       change_message_visibility(message) if ignore_visibility_timeout
       logger.error("Error processing message #{message.id}: #{e}")
 
-      error_handler.call(e)
+      error_handler.call(e) if error_handler
     end
 
     def handle_message_with_middleware(message, &block)
