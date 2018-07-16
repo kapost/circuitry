@@ -22,7 +22,6 @@ module Circuitry
       batch_size: 10,
       ignore_visibility_timeout: false,
       auto_delete: true,
-      before_message: lambda {},
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -181,7 +180,7 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
-        before_message.call(message)
+        before_message.call(message) if before_message
         if auto_delete
           block.call(message.body, message.topic.name)
         else
