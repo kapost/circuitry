@@ -93,11 +93,12 @@ module Circuitry
     end
 
     def trap_signals
-      trap('SIGINT') do
-        if subscribed?
-          Thread.new { logger.info('Interrupt received, unsubscribing from queue...') }
-          self.subscribed = false
-        end
+      trap('INT') do
+        self.subscribed = false
+      end
+
+      trap('TERM') do
+        self.subscribed = false
       end
     end
 
@@ -105,7 +106,10 @@ module Circuitry
       poller = Aws::SQS::QueuePoller.new(queue, client: sqs)
 
       poller.before_request do |_stats|
-        throw :stop_polling unless subscribed?
+        if !subscribed?
+          logger.info('Interrupt received, unsubscribing from queue...')
+          throw :stop_polling
+        end
       end
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
