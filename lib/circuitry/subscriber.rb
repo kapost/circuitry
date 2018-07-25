@@ -132,8 +132,7 @@ module Circuitry
     end
 
     def process_messages_synchronously(messages, &block)
-      #messages.each { |message| process_message(message, &block) }
-      messages.each { |message| process_message_unsafely(message, &block) }
+      messages.each { |message| process_message(message, &block) }
     end
 
     def process_message(message, &block)
@@ -150,16 +149,6 @@ module Circuitry
       change_message_visibility(message) if ignore_visibility_timeout
       logger.error("Error processing message #{message.id}: #{e}")
       error_handler.call(e) if error_handler
-    end
-
-    def process_message_unsafely(message, &block)
-      message = Message.new(message)
-
-      logger.info("Processing message #{message.id}")
-
-      handled = handle_message_with_middleware(message, &block)
-
-      logger.info("Ignoring duplicate message #{message.id}") unless handled
     end
 
     def handle_message_with_middleware(message, &block)
