@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :auto_delete
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :auto_delete, :before_message
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -21,7 +21,7 @@ module Circuitry
       wait_time: 10,
       batch_size: 10,
       ignore_visibility_timeout: false,
-      auto_delete: true
+      auto_delete: true,
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -34,7 +34,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout auto_delete].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout auto_delete before_message].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -69,9 +69,19 @@ module Circuitry
       Circuitry.subscriber_config.async_strategy
     end
 
+    def change_message_visibility(message, timeout = 0)
+      logger.info("Retrying message now by making the 'visiblity_timeout' #{timeout} seconds for message #{message.id}")
+      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: timeout)
+    end
+
+    def delete_messages(message_entries)
+      logger.info("Removing messages [#{message_entries.map { |entry| entry[:id] }.join(', ') }] from queue")
+      sqs.delete_message_batch(queue_url: queue, entries: message_entries)
+    end
+
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :auto_delete
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :auto_delete, :before_message
     attr_accessor :subscribed
 
     def lock=(value)
@@ -149,6 +159,7 @@ module Circuitry
     rescue => e
       change_message_visibility(message) if ignore_visibility_timeout
       logger.error("Error processing message #{message.id}: #{e}")
+
       error_handler.call(e) if error_handler
     end
 
@@ -189,10 +200,11 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
+        before_message.call(message) if before_message
         if auto_delete
           block.call(message.body, message.topic.name)
         else
-          block.call(message.body, message.topic.name, lambda { delete_message(message) })
+          block.call(message.body, message.topic.name, message_entry(message))
         end
       end
     rescue => e
@@ -200,9 +212,8 @@ module Circuitry
       raise e
     end
 
-    def change_message_visibility(message)
-      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
-      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
+    def message_entry(message)
+      { id: message.id, receipt_handle: message.receipt_handle }
     end
 
     def delete_message(message)
