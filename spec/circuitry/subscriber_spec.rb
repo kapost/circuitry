@@ -135,20 +135,9 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
             end
 
-            describe 'when never calling delete' do
-              it 'does not delete the messages' do
-                subject.subscribe(&block)
-                expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
-              end
-            end
-
-            describe 'when calling delete in the handler' do
-              let(:block) { ->(_, _, delete) { delete.call } }
-
-              it 'deletes the message' do
-                subject.subscribe(&block)
-                expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
-              end
+            it 'does not delete the messages' do
+              subject.subscribe(&block)
+              expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
             end
           end
 
@@ -313,6 +302,36 @@ RSpec.describe Circuitry::Subscriber, type: :model do
           end
 
           it_behaves_like 'a valid subscribe request'
+        end
+
+        describe 'before_message' do
+          let(:messages) {
+            double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+          }
+          let(:options) { { before_message: before_message } }
+
+          let(:before_message) do
+            lambda do |_message|
+              expect(@expected_messages).to eq([])
+              @expected_messages << 'before_message was called'
+            end
+          end
+
+          let(:block) do
+            ->(_, _) do
+              expect(@expected_messages).to eq(['before_message was called'])
+              @expected_messages << 'subscribe block was called'
+            end
+          end
+
+          before do
+            @expected_messages = []
+          end
+
+          it 'calls the before_message handler before processing the messages' do
+            subject.subscribe(&block)
+            expect(@expected_messages).to eq(['before_message was called', 'subscribe block was called'])
+          end
         end
       end
 
