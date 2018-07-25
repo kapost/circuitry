@@ -74,6 +74,11 @@ module Circuitry
       sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: timeout)
     end
 
+    def delete_messages(message_entries)
+      logger.info("Removing messages [#{message_entries.map { |entry| entry[:id] }.join(', ') }] from queue")
+      sqs.delete_message_batch(queue_url: queue, entries: message_entries)
+    end
+
     protected
 
     attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :auto_delete, :before_message
@@ -184,12 +189,16 @@ module Circuitry
         if auto_delete
           block.call(message.body, message.topic.name)
         else
-          block.call(message.body, message.topic.name, lambda { delete_message(message) })
+          block.call(message.body, message.topic.name, message_entry(message))
         end
       end
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e
+    end
+
+    def message_entry(message)
+      { id: message.id, receipt_handle: message.receipt_handle }
     end
 
     def delete_message(message)
