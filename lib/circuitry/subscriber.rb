@@ -132,7 +132,7 @@ module Circuitry
     def process_message(message, &block)
       message = Message.new(message)
 
-      logger.info("Processing message #{message.id}")
+      logger.debug("Processing message #{message.id}")
 
       handled = try_with_lock(message.id) do
         handle_message_with_middleware(message, &block)
