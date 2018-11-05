@@ -186,7 +186,7 @@ module Circuitry
     end
 
     def delete_message(message)
-      logger.info("Removing message #{message.id} from queue")
+      logger.debug("Removing message #{message.id} from queue")
       sqs.delete_message(queue_url: queue, receipt_handle: message.receipt_handle)
     end
 
