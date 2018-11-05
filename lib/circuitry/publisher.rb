@@ -54,7 +54,7 @@ module Circuitry
         # TODO: Don't use ruby timeout.
         # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
         Timeout.timeout(timeout) do
-          logger.info("Publishing message to #{topic_name}")
+          logger.debug("Publishing message to #{topic_name}")
 
           handler = ->(error, attempt_number, _total_delay) do
             logger.warn("Error publishing attempt ##{attempt_number}: #{error.class} (#{error.message}); retrying...")
