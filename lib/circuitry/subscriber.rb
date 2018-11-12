@@ -84,6 +84,11 @@ module Circuitry
       @lock = value
     end
 
+    def change_message_visibility(message)
+      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
+      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
+    end
+
     private
 
     def lock_value_error(value)
@@ -178,11 +183,6 @@ module Circuitry
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
       raise e
-    end
-
-    def change_message_visibility(message)
-      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
-      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
     end
 
     def delete_message(message)
