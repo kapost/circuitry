@@ -68,6 +68,11 @@ module Circuitry
       Circuitry.subscriber_config.async_strategy
     end
 
+    def change_message_visibility(message)
+      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
+      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
+    end
+
     protected
 
     attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout
@@ -82,11 +87,6 @@ module Circuitry
               end
 
       @lock = value
-    end
-
-    def change_message_visibility(message)
-      logger.info("Retrying message now by making the 'visiblity_timeout' zero seconds for message #{message.id}")
-      sqs.change_message_visibility(queue_url: queue, receipt_handle: message.receipt_handle, visibility_timeout: 0)
     end
 
     private
