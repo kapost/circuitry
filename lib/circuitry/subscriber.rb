@@ -103,7 +103,11 @@ module Circuitry
 
     def unsubscribe_from_queue
       if subscribed?
-        Thread.new { logger.info('Interrupt received, unsubscribing from queue...') }
+        p "SIGINT OR SIGTERM RECEIVED UNSUBSCRIBING FROM QUEUE"
+        Thread.new {
+          logger.info('Interrupt received, unsubscribing from queue...')
+          p 'Interrupt received, unsubscribing from queue...'
+        }
         self.subscribed = false
       end
     end
