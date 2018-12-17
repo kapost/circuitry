@@ -93,10 +93,14 @@ module Circuitry
 
     def trap_signals
       trap('SIGINT') do
+        logger.info({"message" => "SIGINT_RECEIVED_JSON"}.to_json)
+        logger.info({"message" => "SIGINT_RECEIVED"}.to_json)
         unsubscribe_from_queue
       end
 
       trap('SIGTERM') do
+        logger.info({"message" => "SIGTERM_RECEIVED_JSON"}.to_json)
+        logger.info({"message" => "SIGTERM_RECEIVED"}.to_json)
         unsubscribe_from_queue
       end
     end
@@ -104,6 +108,7 @@ module Circuitry
     def unsubscribe_from_queue
       if subscribed?
         Thread.new {
+          logger.info({"message" => "SIGNAL_INTERRUPTION"})
           logger.info('Interrupt received, unsubscribing from queue...')
         }
         self.subscribed = false
