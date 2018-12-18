@@ -105,7 +105,6 @@ module Circuitry
       if subscribed?
         Thread.new {
           logger.info('Interrupt received, unsubscribing from queue...')
-          logger.info({messages: 'SIGNAL_INTERRUPT_JSON'}.to_json)
         }
         self.subscribed = false
       end
