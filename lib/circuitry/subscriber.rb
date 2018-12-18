@@ -93,10 +93,20 @@ module Circuitry
 
     def trap_signals
       trap('SIGINT') do
-        if subscribed?
-          Thread.new { logger.info('Interrupt received, unsubscribing from queue...') }
-          self.subscribed = false
-        end
+        unsubscribe_from_queue
+      end
+
+      trap('SIGTERM') do
+        unsubscribe_from_queue
+      end
+    end
+
+    def unsubscribe_from_queue
+      if subscribed?
+        Thread.new {
+          logger.info('Interrupt received, unsubscribing from queue...')
+        }
+        self.subscribed = false
       end
     end
 
