@@ -157,7 +157,7 @@ module Circuitry
     end
 
     def handle_message_with_middleware(message, &block)
-      middleware.invoke(message.topic.name, message.body) do
+      middleware.invoke(message.topic&.name, message.body) do
         handle_message(message, &block)
         delete_message(message)
       end
@@ -183,7 +183,7 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
-        block.call(message.body, message.topic.name)
+        block.call(message.body, message.topic&.name)
       end
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")
