@@ -256,6 +256,17 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               end
             end
           end
+
+          context 'with no TopicArn (the message was not from a SNS<->SQS subscription, it was from SQS directly)' do
+            let(:messages) do
+              double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json }.to_json)
+            end
+
+            it 'processes the message' do
+              expect(block).to receive(:call).with('Foo', nil)
+              subject.subscribe(&block)
+            end
+          end
         end
 
         describe 'synchronously' do

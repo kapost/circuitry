@@ -17,4 +17,10 @@ RSpec.describe Circuitry::Message, type: :model do
   its(:body) { is_expected.to eq body }
   its(:topic) { is_expected.to eq Circuitry::Topic.new(arn) }
   its(:receipt_handle) { is_expected.to eq handle }
+
+  context 'with no TopicArn (the message was not from a SNS<->SQS subscription, it was from SQS directly)' do
+    let(:context) { { 'Message' => body.to_json } }
+
+    its(:topic) { is_expected.to eq nil }
+  end
 end
