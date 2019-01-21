@@ -69,7 +69,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
     describe 'when a block is given' do
       let(:block) { ->(_, _) { } }
-      let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
+      let(:logger) { double('Logger', debug: nil, info: nil, warn: nil, error: nil) }
       let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true) }
       let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
       let(:messages) { [] }
@@ -191,7 +191,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               let(:error) { StandardError.new('test error') }
 
               describe 'when ignore_visibility_timeout is set to true' do
-                let(:logger) { double('Logger', info: nil, warn: nil, error: nil) }
+                let(:logger) { double('Logger', debug: nil, info: nil, warn: nil, error: nil) }
                 let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, change_message_visibility: true) }
                 let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
                 let(:options) { { ignore_visibility_timeout: true } }
