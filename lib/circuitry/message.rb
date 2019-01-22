@@ -18,7 +18,7 @@ module Circuitry
     end
 
     def topic
-      @topic ||= Topic.new(context['TopicArn'])
+      @topic ||= Topic.new(context['TopicArn']) if context['TopicArn']
     end
 
     def id
