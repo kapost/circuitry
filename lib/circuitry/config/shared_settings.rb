@@ -9,6 +9,7 @@ module Circuitry
         base.attribute :access_key, String
         base.attribute :secret_key, String
         base.attribute :region, String, default: 'us-east-1'
+        base.attribute :use_iam_profile, Virtus::Attribute::Boolean, default: false
         base.attribute :logger, Logger, default: Logger.new(STDERR)
         base.attribute :error_handler
         base.attribute :topic_names, Array[String], default: []

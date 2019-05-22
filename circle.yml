@@ -1,7 +1,0 @@
-machine:
-  ruby:
-    version: 2.2.0
-
-dependencies:
-  pre:
-    - gem install bundler -v 1.8.9
