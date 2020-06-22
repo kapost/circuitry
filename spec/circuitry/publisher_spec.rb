@@ -42,6 +42,7 @@ RSpec.describe Circuitry::Publisher, type: :model do
       describe 'when AWS credentials are set' do
         before do
           allow(Circuitry.publisher_config).to receive(:aws_options).and_return(access_key_id: 'key', secret_access_key: 'secret', region: 'region')
+          allow(logger).to receive(:debug)
         end
 
         shared_examples_for 'a valid publish request' do
