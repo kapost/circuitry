@@ -100,6 +100,25 @@ RSpec.describe Circuitry::Publisher, type: :model do
               end
             end
           end
+
+          describe 'when the message is invalid' do
+            before do
+              mock_error = Aws::SNS::Errors::InvalidParameter.new({}, "Invalid parameter: Message too long")
+              allow(mock_sns).to receive(:publish).and_raise(mock_error)
+            end
+
+            it 'raises the error' do
+              expect { subject.publish(topic_name, object) }.to raise_error do |ex|
+                expect(ex).to be_a(Circuitry::SnsPublishError)
+                error_message = JSON.parse(ex.message)
+                message = JSON.parse(error_message["message"])
+
+                expect(error_message["error"]).to eq("Aws::SNS::Errors::InvalidParameter: Invalid parameter: Message too long")
+                expect(error_message["topic_arn"]).to eq("arn:aws:sns:us-east-1:123456789012:some-topic-name")
+                expect(message).to eq("foo" => "bar")
+              end
+            end
+          end
         end
 
         describe 'synchonously' do
