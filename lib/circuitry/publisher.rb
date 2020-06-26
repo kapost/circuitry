@@ -6,6 +6,17 @@ require 'circuitry/services/sns'
 module Circuitry
   class PublishError < StandardError; end
 
+  class SnsPublishError < StandardError
+    def initialize(topic:, message:, exception:)
+      msg = {
+        error: "#{exception.class}: #{exception.message}",
+        topic_arn: topic.arn,
+        message: message
+      }
+      super msg.to_json
+    end
+  end
+
   class Publisher
     include Concerns::Async
     include Services::SNS
@@ -62,7 +73,7 @@ module Circuitry
 
           with_retries(max_tries: 3, handler: handler, rescue: CONNECTION_ERRORS, base_sleep_seconds: 0.05, max_sleep_seconds: 0.25) do
             topic = Topic.find(topic_name)
-            sns.publish(topic_arn: topic.arn, message: message)
+            sns_publish(topic: topic, message: message)
           end
         end
       end
@@ -71,6 +82,13 @@ module Circuitry
     attr_writer :timeout
 
     private
+
+    def sns_publish(topic:, message:)
+      sns.publish(topic_arn: topic.arn, message: message)
+
+    rescue Aws::SNS::Errors::InvalidParameter => ex
+      raise SnsPublishError.new(topic: topic, message:  message, exception: ex)
+    end
 
     def logger
       Circuitry.publisher_config.logger

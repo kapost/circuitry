@@ -1,6 +1,10 @@
-## Unreleased
+## Circuitry 3.3.0 (June 23, 2020)
 
 * Update AWS SDK to version 3 and use module sdk gems. *thogg4*
+  See https://github.com/aws/aws-sdk-ruby 
+  Version 3 is backwards compatible with version 2.
+* Catch `Aws::SNS::Errors::InvalidParameter` and rethrow with the topic
+  and message that caused the problem for improved debugging.
 
 ## Circuitry 3.2.0 (May 6, 2017)
 
