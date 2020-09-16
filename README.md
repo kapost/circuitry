@@ -150,7 +150,7 @@ Available configuration options for *both* subscriber and publisher applications
 * `middleware`: A chain of middleware that messages must go through when sent or received.
   Please refer to the [Middleware](#middleware) section for more details regarding this
   option.
-* `aws_options_overrides`: A key/value hash of option overrides passed through to the
+* `aws_options_overrides`: A key/value hash of option overrides and additions passed through to the
    [`AWS::SQS::Client`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/SQS/Client.html)(for subscriber config) or [`AWS::SNS::Client`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/SNS/Client.html)(for publisher config)
 
 Available configuration options for subscriber applications include:
