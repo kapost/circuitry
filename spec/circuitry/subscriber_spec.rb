@@ -76,6 +76,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
       before do
         allow(Circuitry.subscriber_config).to receive(:logger).and_return(logger)
+        allow(logger).to receive(:debug)
         allow(subject).to receive(:sqs).and_return(mock_sqs)
         allow(Aws::SQS::QueuePoller).to receive(:new).with(queue, client: mock_sqs).and_return(mock_poller)
 

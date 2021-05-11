@@ -25,6 +25,18 @@ RSpec.describe Circuitry::Config::PublisherSettings do
     it 'returns a hash of AWS connection options' do
       expect(subject.aws_options).to eq(access_key_id: 'access_key', secret_access_key: 'secret_key', region: 'region')
     end
+
+    context 'with overrides' do
+      before do
+        subject.aws_options_overrides = {
+          endpoint: 'http://localhost:4566'
+        }
+      end
+
+      it 'includes the overrides in AWS connection options hash' do
+        expect(subject.aws_options).to eq(access_key_id: 'access_key', secret_access_key: 'secret_key', region: 'region', endpoint: 'http://localhost:4566')
+      end
+    end
   end
 
   describe '#middleware' do
