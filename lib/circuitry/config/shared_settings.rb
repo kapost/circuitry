@@ -15,6 +15,7 @@ module Circuitry
         base.attribute :topic_names, Array[String], default: []
         base.attribute :on_async_exit
         base.attribute :async_strategy, Symbol, default: ->(_page, _att) { :fork }
+        base.attribute :aws_options_overrides, Hash, default: {}
       end
 
       def middleware
@@ -27,7 +28,8 @@ module Circuitry
         {
           access_key_id:     access_key,
           secret_access_key: secret_key,
-          region:            region
+          region:            region,
+          **aws_options_overrides
         }
       end
 
