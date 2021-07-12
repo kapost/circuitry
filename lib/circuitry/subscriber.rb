@@ -157,8 +157,6 @@ module Circuitry
     end
 
     def process_message(message, &block)
-      # message = Message.new(message)
-
       logger.debug("Processing message #{message.id}")
 
       handled = try_with_lock(message.id) do
