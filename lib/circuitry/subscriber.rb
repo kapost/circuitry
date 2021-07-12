@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :filter_with
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -20,7 +20,8 @@ module Circuitry
       timeout: 15,
       wait_time: 10,
       batch_size: 10,
-      ignore_visibility_timeout: false
+      ignore_visibility_timeout: false,
+      filter_with: ->(messages) { messages }
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -33,7 +34,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout filter_with].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -70,7 +71,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with
     attr_accessor :subscribed
 
     def lock=(value)
@@ -118,10 +119,25 @@ module Circuitry
       end
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
-        messages = [messages] unless messages.is_a?(Array)
-        process_messages(Array(messages), &block)
+        messages = parse_and_filter_messages(messages)
+        process_messages(messages, &block)
         Circuitry.flush
       end
+    end
+
+    def parse_and_filter_messages(messages)
+      filter_messages(
+        message_parser(messages)
+      )
+    end
+
+    def message_parser(messages)
+      messages = [messages] unless messages.is_a?(Array)
+      Array(messages).map { |message| Message.new(message) }
+    end
+
+    def filter_messages(messages)
+      filter_with.call(messages)
     end
 
     def process_messages(messages, &block)
@@ -141,8 +157,6 @@ module Circuitry
     end
 
     def process_message(message, &block)
-      message = Message.new(message)
-
       logger.debug("Processing message #{message.id}")
 
       handled = try_with_lock(message.id) do

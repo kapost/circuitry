@@ -113,7 +113,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
         end
 
         shared_examples_for 'a valid subscribe request' do
-          describe 'when the batch_size is 1 and messages is not an Array' do
+          context 'when the batch_size is 1 and messages is not an Array' do
             let(:messages) do
               double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
             end
@@ -128,9 +128,19 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               subject.subscribe(&block)
               expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
             end
+
+            context 'when filtering strategy is provided' do
+              let(:filter_with) { ->(messages) { messages.reject { |message| message.body == 'Foo' } } }
+              let(:options) { { filter_with: filter_with } }
+
+              it 'removes messages that do not match the strategy' do
+                expect(block).not_to receive(:call).with('Foo', 'test-event-task-changed')
+                subject.subscribe(&block)
+              end
+            end
           end
 
-          describe 'when the batch_size is greater than 1' do
+          context 'when the batch_size is greater than 1' do
             let(:messages) do
               [
                 double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json),
@@ -150,7 +160,18 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
             end
 
-            describe 'when a duplicate message is received' do
+            context 'when filtering strategy is provided' do
+              let(:filter_with) { ->(messages) { messages.reject { |message| message.body == 'Bar' } } }
+              let(:options) { { filter_with: filter_with } }
+
+              it 'removes messages that do not match the strategy' do
+                expect(block).to receive(:call).with('Foo', 'test-event-task-changed')
+                expect(block).not_to receive(:call).with('Bar', 'test-event-comment')
+                subject.subscribe(&block)
+              end
+            end
+
+            context 'when a duplicate message is received' do
               let(:options) { { async: async, lock: lock } }
               let(:messages) do
                 2.times.map do
@@ -158,7 +179,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
                 end
               end
 
-              describe 'when locking is disabled' do
+              context 'when locking is disabled' do
                 let(:lock) { false }
 
                 it 'processes the duplicate' do
@@ -172,7 +193,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
                 end
               end
 
-              describe 'when locking is enabled' do
+              context 'when locking is enabled' do
                 let(:lock) { true }
 
                 it 'does not process the duplicate' do
@@ -187,7 +208,7 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               end
             end
 
-            describe 'when processing fails' do
+            context 'when processing fails' do
               let(:block) { ->(message, topic) { raise error if message == 'Foo' } }
               let(:error) { StandardError.new('test error') }
 
