@@ -119,16 +119,13 @@ module Circuitry
       end
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
-        messages = parse_and_filter_messages(messages)
-        process_messages(messages, &block)
+        messages = message_parser(messages)
+        filtered_messages = filter_messages(messages)
+        process_messages(filtered_messages, &block)
         Circuitry.flush
       end
     end
 
-    def parse_and_filter_messages(messages)
-      filter_messages(
-        message_parser(messages)
-      )
     end
 
     def message_parser(messages)
