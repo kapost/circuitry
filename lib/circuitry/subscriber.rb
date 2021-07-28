@@ -121,13 +121,13 @@ module Circuitry
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
         messages = message_parser(messages)
         filtered_messages = filter_messages(messages)
-        delete_invalid_messages(messages, filtered_messages)
+        delete_excluded_messages(messages, filtered_messages)
         process_messages(filtered_messages, &block)
         Circuitry.flush
       end
     end
 
-    def delete_invalid_messages(unfiltered_messages, filtered_messages)
+    def delete_excluded_messages(unfiltered_messages, filtered_messages)
       messages_to_delete_from_queue = unfiltered_messages - filtered_messages
       return if messages_to_delete_from_queue.empty?
       delete_message_batch(messages_to_delete_from_queue)
