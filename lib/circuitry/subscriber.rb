@@ -119,16 +119,18 @@ module Circuitry
       end
 
       poller.poll(max_number_of_messages: batch_size, wait_time_seconds: wait_time, skip_delete: true) do |messages|
-        messages = parse_and_filter_messages(messages)
-        process_messages(messages, &block)
+        messages = message_parser(messages)
+        filtered_messages = filter_messages(messages)
+        delete_excluded_messages(messages, filtered_messages)
+        process_messages(filtered_messages, &block)
         Circuitry.flush
       end
     end
 
-    def parse_and_filter_messages(messages)
-      filter_messages(
-        message_parser(messages)
-      )
+    def delete_excluded_messages(unfiltered_messages, filtered_messages)
+      messages_to_delete_from_queue = unfiltered_messages - filtered_messages
+      return if messages_to_delete_from_queue.empty?
+      delete_message_batch(messages_to_delete_from_queue)
     end
 
     def message_parser(messages)
@@ -212,6 +214,29 @@ module Circuitry
     def delete_message(message)
       logger.debug("Removing message #{message.id} from queue")
       sqs.delete_message(queue_url: queue, receipt_handle: message.receipt_handle)
+    end
+
+    def delete_message_batch(messages)
+      resp = sqs.delete_message_batch({
+        queue_url: queue,
+        entries: format_messages_for_deletion(messages)
+      })
+
+      if resp.successful.size != messages.size
+        logger.error("Filtered out messages couldn't get deleted for #{queue}")
+        resp.failed.each do |failed_message|
+          logger.error("Message #{failed_message.id} wasn't deleted: #{failed_message.message}")
+        end
+      end
+    end
+
+    def format_messages_for_deletion(messages)
+      messages.map do |message|
+        {
+          id: message.id,
+          receipt_handle: message.receipt_handle
+        }
+      end
     end
 
     def logger

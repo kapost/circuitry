@@ -70,7 +70,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
     describe 'when a block is given' do
       let(:block) { ->(_, _) { } }
       let(:logger) { double('Logger', debug: nil, info: nil, warn: nil, error: nil) }
-      let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true) }
+      let(:batch_delete_response) { double('Aws::SQS::Types::DeleteMessageBatchResult', successful: ['item'], failed: []) }
+      let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, delete_message_batch: batch_delete_response) }
       let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
       let(:messages) { [] }
 
@@ -137,6 +138,12 @@ RSpec.describe Circuitry::Subscriber, type: :model do
                 expect(block).not_to receive(:call).with('Foo', 'test-event-task-changed')
                 subject.subscribe(&block)
               end
+
+              it 'removes messages that were filtered out' do
+                entries = [{ id: messages.message_id, receipt_handle: messages.receipt_handle }]
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message_batch).with(queue_url: queue, entries: entries)
+              end
             end
           end
 
@@ -160,6 +167,11 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-two')
             end
 
+            it 'does not delete batch messages' do
+              subject.subscribe(&block)
+              expect(mock_sqs).not_to have_received(:delete_message_batch)
+            end
+
             context 'when filtering strategy is provided' do
               let(:filter_with) { ->(messages) { messages.reject { |message| message.body == 'Bar' } } }
               let(:options) { { filter_with: filter_with } }
@@ -168,6 +180,23 @@ RSpec.describe Circuitry::Subscriber, type: :model do
                 expect(block).to receive(:call).with('Foo', 'test-event-task-changed')
                 expect(block).not_to receive(:call).with('Bar', 'test-event-comment')
                 subject.subscribe(&block)
+              end
+
+              it 'removes messages that were filtered out' do
+                entries = [{ id: messages[1].message_id, receipt_handle: messages[1].receipt_handle }]
+                subject.subscribe(&block)
+                expect(mock_sqs).to have_received(:delete_message_batch).with(queue_url: queue, entries: entries)
+              end
+
+              context 'when message being batch deleted was not deleted successfully' do
+                let(:failure) { double('Aws::SQS::Types::BatchResultErrorEntry', id: messages[1].message_id, message: 'Not deleted' ) }
+                let(:batch_delete_response) { double('Aws::SQS::Types::DeleteMessageBatchResult', successful: [], failed: [failure]) }
+
+                it 'logs errors for failed messages' do
+                  subject.subscribe(&block)
+                  expect(mock_sqs).to have_received(:delete_message_batch)
+                  expect(logger).to have_received(:error).twice
+                end
               end
             end
 
@@ -214,7 +243,8 @@ RSpec.describe Circuitry::Subscriber, type: :model do
 
               describe 'when ignore_visibility_timeout is set to true' do
                 let(:logger) { double('Logger', debug: nil, info: nil, warn: nil, error: nil) }
-                let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, change_message_visibility: true) }
+                let(:batch_delete_response) { double('Aws::SQS::Types::DeleteMessageBatchResult', successful: ['item'], failed: []) }
+                let(:mock_sqs) { double('Aws::SQS::Client', delete_message: true, change_message_visibility: true, delete_message_batch: batch_delete_response) }
                 let(:mock_poller) { double('Aws::SQS::QueuePoller', before_request: true) }
                 let(:options) { { ignore_visibility_timeout: true } }
                 let(:subject) { described_class.new(options) }

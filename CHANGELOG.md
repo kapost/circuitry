@@ -1,3 +1,11 @@
+## Circuitry 3.6.0 (July 28, 2021)
+
+* Filter callback option now deletes excluded messages from the SQS queue *Ada Ebling, Cesar Palafox*
+
+## Circuitry 3.5.0 (July 12, 2021)
+
+* Adds an option for a filter callback that excludes messages before processing *Ada Ebling, Cesar Palafox*
+
 ## Circuitry 3.4.0 Sep 16, 2020)
 
 * Adds an option for publisher and subscriber configs to override the AWS client options. *wahlg*
