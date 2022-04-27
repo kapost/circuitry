@@ -70,6 +70,11 @@ module Circuitry
       Circuitry.subscriber_config.async_strategy
     end
 
+    def delete_messages(message_entries)
+      logger.info("Removing messages [#{message_entries.map { |entry| entry[:id] }.join(', ') }] from queue")
+      sqs.delete_message_batch(queue_url: queue, entries: message_entries)
+    end
+
     protected
 
     attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with, :before_message, :auto_delete
