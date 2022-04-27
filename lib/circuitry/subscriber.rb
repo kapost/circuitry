@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :filter_with
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :filter_with, :before_message
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -34,7 +34,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout filter_with].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout filter_with before_message].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -71,7 +71,7 @@ module Circuitry
 
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with, :before_message
     attr_accessor :subscribed
 
     def lock=(value)
@@ -199,6 +199,7 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
+        before_message.call(message) if before_message
         block.call(message.body, message.topic&.name)
       end
     rescue => e
