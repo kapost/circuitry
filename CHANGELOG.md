@@ -1,3 +1,10 @@
+## Circuitry 3.7.0 (April 28, 2022)
+Changes submitted by: *Wes Morlock, Andrew Aposhian*
+
+* Adds `auto_delete` option (default: `true`) for deleting SQS message after processing
+* Adds `before_message` option that receives a block to be processed before the subscriber block
+* Adds `Circuitry::Subscriber#delete_messages` for bulk_deleting messages out of SQS
+
 ## Circuitry 3.6.0 (July 28, 2021)
 
 * Filter callback option now deletes excluded messages from the SQS queue *Ada Ebling, Cesar Palafox*
