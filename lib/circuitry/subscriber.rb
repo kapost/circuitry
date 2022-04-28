@@ -12,7 +12,7 @@ module Circuitry
     include Concerns::Async
     include Services::SQS
 
-    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :filter_with
+    attr_reader :queue, :timeout, :wait_time, :batch_size, :lock, :ignore_visibility_timeout, :filter_with, :before_message, :auto_delete
 
     DEFAULT_OPTIONS = {
       lock: true,
@@ -21,7 +21,8 @@ module Circuitry
       wait_time: 10,
       batch_size: 10,
       ignore_visibility_timeout: false,
-      filter_with: ->(messages) { messages }
+      filter_with: ->(messages) { messages },
+      auto_delete: true
     }.freeze
 
     CONNECTION_ERRORS = [
@@ -34,7 +35,7 @@ module Circuitry
       self.subscribed = false
       self.queue = Queue.find(Circuitry.subscriber_config.queue_name).url
 
-      %i[lock async timeout wait_time batch_size ignore_visibility_timeout filter_with].each do |sym|
+      %i[lock async timeout wait_time batch_size ignore_visibility_timeout filter_with before_message auto_delete].each do |sym|
         send(:"#{sym}=", options[sym])
       end
 
@@ -69,9 +70,14 @@ module Circuitry
       Circuitry.subscriber_config.async_strategy
     end
 
+    def delete_messages(message_entries)
+      logger.info("Removing messages [#{message_entries.map { |entry| entry[:id] }.join(', ') }] from queue")
+      sqs.delete_message_batch(queue_url: queue, entries: message_entries)
+    end
+
     protected
 
-    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with
+    attr_writer :queue, :timeout, :wait_time, :batch_size, :ignore_visibility_timeout, :filter_with, :before_message, :auto_delete
     attr_accessor :subscribed
 
     def lock=(value)
@@ -86,6 +92,10 @@ module Circuitry
     end
 
     private
+
+    def message_entry(message)
+      { id: message.id, receipt_handle: message.receipt_handle }
+    end
 
     def lock_value_error(value)
       opts = Circuitry::Locks::Base
@@ -175,7 +185,7 @@ module Circuitry
     def handle_message_with_middleware(message, &block)
       middleware.invoke(message.topic&.name, message.body) do
         handle_message(message, &block)
-        delete_message(message)
+        delete_message(message) if auto_delete
       end
     end
 
@@ -199,7 +209,12 @@ module Circuitry
     # http://www.mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/
     def handle_message(message, &block)
       Timeout.timeout(timeout) do
-        block.call(message.body, message.topic&.name)
+        before_message.call(message) if before_message
+        if auto_delete
+          block.call(message.body, message.topic&.name)
+        else
+          block.call(message.body, message.topic&.name, message_entry(message))
+        end
       end
     rescue => e
       logger.error("Error handling message #{message.id}: #{e}")

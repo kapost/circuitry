@@ -130,6 +130,34 @@ RSpec.describe Circuitry::Subscriber, type: :model do
               expect(mock_sqs).to have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
             end
 
+            describe 'when disabling auto_delete' do
+              let(:options) { { auto_delete: false } }
+              let(:messages) do
+                double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+              end
+              let(:block) {
+                ->(_, _, message_entry) do
+                  expect(@message_entry).to be_nil
+                  @message_entry = message_entry
+                end
+              }
+
+              before do
+                @message_entry = nil
+              end
+
+              it 'does not delete the messages' do
+                subject.subscribe(&block)
+                expect(mock_sqs).to_not have_received(:delete_message).with(queue_url: queue, receipt_handle: 'delete-one')
+              end
+
+              it 'passes the message_entry to the subscriber block' do
+                subject.subscribe(&block)
+                expect(@message_entry[:id]).to eq 'one'
+                expect(@message_entry[:receipt_handle]).to eq 'delete-one'
+              end
+            end
+
             context 'when filtering strategy is provided' do
               let(:filter_with) { ->(messages) { messages.reject { |message| message.body == 'Foo' } } }
               let(:options) { { filter_with: filter_with } }
@@ -317,6 +345,36 @@ RSpec.describe Circuitry::Subscriber, type: :model do
             it 'processes the message' do
               expect(block).to receive(:call).with('Foo', nil)
               subject.subscribe(&block)
+            end
+          end
+
+          describe 'before_message' do
+            let(:messages) {
+              double('Aws::SQS::Types::Message', message_id: 'one', receipt_handle: 'delete-one', body: { 'Message' => 'Foo'.to_json, 'TopicArn' => 'arn:aws:sns:us-east-1:123456789012:test-event-task-changed' }.to_json)
+            }
+            let(:options) { { before_message: before_message } }
+
+            let(:before_message) do
+              lambda do |_message|
+                expect(@expected_messages).to eq([])
+                @expected_messages << 'before_message was called'
+              end
+            end
+
+            let(:block) do
+              ->(_, _) do
+                expect(@expected_messages).to eq(['before_message was called'])
+                @expected_messages << 'subscribe block was called'
+              end
+            end
+
+            before do
+              @expected_messages = []
+            end
+
+            it 'calls the before_message handler before processing the messages' do
+              subject.subscribe(&block)
+              expect(@expected_messages).to eq(['before_message was called', 'subscribe block was called'])
             end
           end
         end
