@@ -43,12 +43,12 @@ module Circuitry
           'Policy' => {
             'Version'   => '2012-10-17',
             'Id'        => "#{queue.arn}/SNSPolicy",
-            'Statement' => [build_policy_statement]#topics.map { |t| build_policy_statement(t) }
+            'Statement' => [build_policy_statement]
           }.to_json
         }
       end
 
-      def build_policy_statement#(topic)
+      def build_policy_statement
         {
           'Sid'       => "Sid-#{queue.name}-subscriptions",
           'Effect'    => 'Allow',
