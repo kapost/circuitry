@@ -43,20 +43,20 @@ module Circuitry
           'Policy' => {
             'Version'   => '2012-10-17',
             'Id'        => "#{queue.arn}/SNSPolicy",
-            'Statement' => topics.map { |t| build_policy_statement(t) }
+            'Statement' => [build_policy_statement]#topics.map { |t| build_policy_statement(t) }
           }.to_json
         }
       end
 
-      def build_policy_statement(topic)
+      def build_policy_statement#(topic)
         {
-          'Sid'       => "Sid#{topic.name}",
+          'Sid'       => "Sid-#{queue.name}-subscriptions",
           'Effect'    => 'Allow',
           'Principal' => { 'AWS' => '*' },
           'Action'    => 'SQS:SendMessage',
           'Resource'  => queue.arn,
           'Condition' => {
-            'ArnEquals' => { 'aws:SourceArn' => topic.arn }
+            'ForAnyValue:ArnEquals' => { 'aws:SourceArn' => topics.map(&:arn) }
           }
         }
       end

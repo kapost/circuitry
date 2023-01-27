@@ -1,4 +1,9 @@
-## Circuitry 3.4.0 Sep 16, 2020)
+## Circuitry 3.5.0 (Jan 27, 2023)
+
+* Changes the way SQL Policy statements are generated to avoid triggering an error when more a
+  queue subscribes to more than 20 SNS topics.
+
+## Circuitry 3.4.0 (Sep 16, 2020)
 
 * Adds an option for publisher and subscriber configs to override the AWS client options. *wahlg*
   See: https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/SQS/Client.html
