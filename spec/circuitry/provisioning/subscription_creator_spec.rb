@@ -7,6 +7,13 @@ RSpec::Matchers.define :policy_statement_count do |count|
   end
 end
 
+RSpec::Matchers.define :policy_statement_arn_condition_count do |statement_position:, count:|
+  match do |actual|
+    statement = JSON.parse(actual[:attributes]['Policy'])['Statement'][statement_position]
+    statement.dig('Condition', 'ForAnyValue:ArnEquals', 'aws:SourceArn').length == count
+  end
+end
+
 RSpec.describe Circuitry::Provisioning::SubscriptionCreator do
   describe '.subscribe_all' do
     subject { described_class }
@@ -29,9 +36,15 @@ RSpec.describe Circuitry::Provisioning::SubscriptionCreator do
       expect(mock_sns).to have_received(:subscribe).thrice.with(hash_including(endpoint: queue_arn, protocol: 'sqs'))
     end
 
-    it 'sets policy attribute on sqs queue for each topic' do
+    it 'sets policy attribute on sqs queue' do
       subject.subscribe_all(queue, topics)
-      expect(mock_sqs).to have_received(:set_queue_attributes).once.with(policy_statement_count(3))
+      expect(mock_sqs).to have_received(:set_queue_attributes).once.with(policy_statement_count(1))
+    end
+
+    it 'sets the policy statement condition on sqs que for topics' do
+      subject.subscribe_all(queue, topics)
+      expect(mock_sqs).to have_received(:set_queue_attributes).once
+        .with(policy_statement_arn_condition_count(statement_position: 0, count: 3))
     end
   end
 end
